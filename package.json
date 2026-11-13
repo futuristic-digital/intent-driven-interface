@@ -1,5 +1,5 @@
 {
-  "name": "uai-demo",
+  "name": "intent-driven-interface",
   "version": "1.0.0",
   "private": true,
   "workspaces": [
@@ -7,11 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "build:uai-server": "turbo run build --filter=@uai/server",
-    "build:frontend": "turbo run build --filter=@uai-demo/frontend",
-    "build:api-db": "turbo run build --filter=@uai-demo/api-db",
+    "dev:demo": "turbo run dev --filter=demo...",
+    "build:demo": "turbo run build --filter=demo",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
     "type-check": "turbo run type-check",
@@ -34,7 +31,7 @@
     "typescript-eslint": "^8.53.0"
   },
   "engines": {
-    "node": ">=18.0.0",
+    "node": "^20.19.0 || >=22.12.0",
     "npm": ">=9.0.0"
   },
   "packageManager": "npm@9.0.0",

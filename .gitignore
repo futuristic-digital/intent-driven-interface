@@ -10,6 +10,7 @@ coverage/
 dist/
 build/
 .next/
+*.tsbuildinfo
 out/
 
 # Misc

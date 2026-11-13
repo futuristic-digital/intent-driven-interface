@@ -4,9 +4,15 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "build/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "build/**"],
+      "env": ["NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN"]
     },
     "dev": {
+      "dependsOn": ["^build"],
+      "passThroughEnv": [
+        "AI_GATEWAY_API_KEY",
+        "NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN"
+      ],
       "cache": false,
       "persistent": true
     },
