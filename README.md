@@ -5,8 +5,8 @@ A logistics demo for an intent-driven interface: describe what you want in plain
 ## Project structure
 
 - `apps/demo` – the single Next.js application, including the UI and API routes.
-- `packages/uai-client` – client hook and component-map helpers.
-- `packages/uai-shared` – shared domain types and schemas.
+- `libs/uai-client` – client hook and component-map helpers.
+- `libs/uai-shared` – shared domain types and schemas.
 
 ## Getting started
 

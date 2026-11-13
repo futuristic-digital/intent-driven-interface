@@ -11,7 +11,7 @@
     "noImplicitReturns": true,
     "baseUrl": ".",
     "paths": {
-      "@uai/client": ["./packages/uai-client/src/index.ts"]
+      "@uai/client": ["./libs/uai-client/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "dist", "build", ".next"]
