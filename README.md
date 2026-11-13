@@ -10,7 +10,7 @@ A logistics demo for an intent-driven interface: describe what you want in plain
 
 ## Getting started
 
-Requirements: Node.js 22.12 or newer (Node.js 20.19+ is also supported) and npm 9 or newer.
+Requirements: Node.js 24 or newer, Node.js 22.13+ (22.x), or Node.js 20.19+ (20.x), and npm 9 or newer.
 
 ```bash
 npm install

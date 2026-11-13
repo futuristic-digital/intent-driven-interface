@@ -63,10 +63,9 @@ export const Map = ({
       positions.push([lng, lat]);
 
       let mapboxPopup: Popup | null = null;
-      let popupContainer: HTMLDivElement | null = null;
 
       if (popup) {
-        popupContainer = document.createElement('div');
+        const popupContainer = document.createElement('div');
         const popupRoot = createRoot(popupContainer);
         let closePopup: (() => void) | null = null;
 
