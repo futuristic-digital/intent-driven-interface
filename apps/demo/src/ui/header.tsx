@@ -1,19 +1,38 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Menu, Truck, Wifi, Shield, Settings } from "lucide-react";
-import { Button } from "@/ui/button";
+import { useState } from 'react';
+import { Menu, Truck, Wifi, Shield } from 'lucide-react';
+import { Button } from '@/ui/button';
 
-export function ChatHeader() {
+/** Keeps navigation available whether the pinned-components panel is open or closed. */
+export function ChatHeader({
+  isSidebarOpen,
+  onToggleSidebar,
+}: {
+  isSidebarOpen: boolean;
+  onToggleSidebar: () => void;
+}) {
   const [isOnline] = useState(true);
 
   return (
-    <header className="flex items-center justify-between border-b border-border/50 bg-card/50 px-4 py-3 backdrop-blur-sm font-mono">
+    <header className="relative z-30 flex shrink-0 items-center justify-between border-b border-border/50 bg-card/50 px-4 py-3 backdrop-blur-sm font-mono">
       <div className="flex items-center gap-3">
         {/* Menu */}
-        <Button variant="ghost" size="icon">
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Open menu</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          id="pinned-components-toggle"
+          aria-controls="pinned-components-panel"
+          aria-expanded={isSidebarOpen}
+          onClick={onToggleSidebar}
+        >
+          <Menu className="h-5 w-5" aria-hidden="true" />
+          <span className="sr-only">
+            {isSidebarOpen
+              ? 'Close pinned components'
+              : 'Open pinned components'}
+          </span>
         </Button>
 
         {/* Logo & Title */}
@@ -40,19 +59,10 @@ export function ChatHeader() {
 
       {/* Status Indicators */}
       <div className="flex items-center">
-        <div className="hidden sm:flex items-center gap-4 mr-4">
+        <div className="hidden sm:flex items-center gap-4">
           <StatusIndicator icon={Wifi} label="NETWORK" active={isOnline} />
           <StatusIndicator icon={Shield} label="SECURE" active />
         </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <Settings className="h-5 w-5" />
-          <span className="sr-only">Settings</span>
-        </Button>
       </div>
     </header>
   );
@@ -71,7 +81,7 @@ function StatusIndicator({
     <div className="flex items-center gap-1.5">
       <Icon
         className={`h-3.5 w-3.5 ${
-          active ? "text-primary" : "text-muted-foreground"
+          active ? 'text-primary' : 'text-muted-foreground'
         }`}
       />
       <span className="text-[10px] text-muted-foreground uppercase tracking-wider">

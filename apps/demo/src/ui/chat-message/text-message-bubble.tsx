@@ -3,6 +3,7 @@ import { cn } from '../../utils/cn';
 import { Bot, User } from 'lucide-react';
 import { ChatMessageTimestamp } from './chat-message-timestamp';
 
+/** Text and its timestamp share the same alignment on either side of the chat. */
 export function TextMessageBubble({
   isAssistant,
   timestamp,
@@ -13,7 +14,15 @@ export function TextMessageBubble({
   textPart: TextUIPart;
 }) {
   return (
-    <div>
+    <div className="space-y-2">
+      <p
+        className={cn(
+          'flex min-h-8 items-center text-xs font-mono text-muted-foreground',
+          isAssistant ? 'pl-11' : 'justify-end pr-11'
+        )}
+      >
+        <ChatMessageTimestamp timestamp={timestamp} />
+      </p>
       <div
         className={cn(
           'flex gap-3',
@@ -44,14 +53,6 @@ export function TextMessageBubble({
           </div>
         )}
       </div>
-      <p
-        className={cn(
-          'mt-2 text-[10px] font-mono text-muted-foreground',
-          isAssistant ? 'ml-15' : 'mr-15 text-right'
-        )}
-      >
-        <ChatMessageTimestamp timestamp={timestamp} />
-      </p>
     </div>
   );
 }

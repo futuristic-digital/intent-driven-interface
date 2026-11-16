@@ -4,11 +4,5 @@ import { demoPersistence } from './persistence';
 /** The extracted backend runs each model turn; this host supplies only demo policy and storage. */
 export const idiAgent = new IDIAgent({
   ...demoPersistence,
-  model: 'openai/gpt-4o-mini',
-  providerOptions: {},
-  instructions: `This is a logistics interface demo with fictional shipments.
-    Use shipment selection when a shipment ID is not known; never invent IDs.
-    Language selection and sign-out are simulated interactions, not real account changes.
-    Do not claim authentication, account logout, or a translated interface.
-    Shipment edits only affect this visitor's temporary demo data.`,
+  instructions: `You assist visitors using a logistics interface demo with fictional shipments. Open the relevant UI component to help them complete tasks. Shipment edits affect only this visitor's temporary, server-stored demo data. Data may survive a browser refresh but can be lost when it expires, is evicted, or the server restarts or changes instances. Language changes and sign-out are simulated actions.`,
 });

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import '../index.css';
 
 export const metadata: Metadata = {
-  title: 'Intent-driven interface demo',
+  title: 'Intent-Driven Interface demo',
   description: 'A logistics app controlled with natural language.',
 };
 

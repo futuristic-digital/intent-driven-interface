@@ -22,6 +22,12 @@ A Next.js logistics demo powered by the extracted Intent-Driven Interface framew
 
 Chat generation sends conversation and component data to AI Gateway and may incur model usage charges. Map views use Mapbox and its token. Use fictional data only.
 
+## Pin and reopen components
+
+Use the pin button beside a component's timestamp to save it in the left panel. Select a saved summary to reopen that component with its original inputs and any captured input changes. Different inputs can be saved as separate pins; pinning the same snapshot again moves it to the top.
+
+The hamburger button toggles the panel, which starts open on desktop and closed on mobile. Pinning a component successfully opens the panel automatically. Pins share the temporary visitor storage described below.
+
 ## How it fits together
 
 - `src/components/idi` registers the existing views with `defineIDIComponent`.

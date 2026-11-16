@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState, useSyncExternalStore } from 'react';
 import { ChatMessages } from './ui/chat-message/chat-messages';
 import { ChatHeader } from './ui/header';
 import { ChatInput } from './ui/chat-input';
+import { PinnedComponentsPanel } from './ui/pinned-components-panel';
 import {
   useIDI,
   defineInitialMessages,
@@ -20,12 +21,48 @@ const initialMessages = defineInitialMessages([
   },
 ]);
 
+const desktopQuery = '(min-width: 1024px)';
+
+/** Match Tailwind's desktop breakpoint for panel accessibility and toggle behavior. */
+function subscribeToDesktopViewport(onChange: () => void) {
+  const query = window.matchMedia(desktopQuery);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+}
+
+const getDesktopViewport = () => window.matchMedia(desktopQuery).matches;
+const getServerViewport = () => false;
+
 export function App() {
+  const isDesktop = useSyncExternalStore(
+    subscribeToDesktopViewport,
+    getDesktopViewport,
+    getServerViewport
+  );
+  const [isSidebarOpenOnDesktop, setIsSidebarOpenOnDesktop] = useState(true);
+  const [isSidebarOpenOnMobile, setIsSidebarOpenOnMobile] = useState(false);
+  const isSidebarOpen = isDesktop
+    ? isSidebarOpenOnDesktop
+    : isSidebarOpenOnMobile;
+
+  function toggleSidebar() {
+    if (isDesktop) setIsSidebarOpenOnDesktop((open) => !open);
+    else setIsSidebarOpenOnMobile((open) => !open);
+  }
+
+  function closeMobileSidebar() {
+    setIsSidebarOpenOnMobile(false);
+    if (!isDesktop)
+      document.getElementById('pinned-components-toggle')?.focus();
+  }
   const {
     messages,
     sendMessage,
     status,
     restoreComponent,
+    pinnedComponents,
+    pinComponent,
+    isLoadingPinnedComponents,
     isLoadingInitialMessages,
     hasOlderMessages,
     isLoadingOlderMessages,
@@ -36,6 +73,21 @@ export function App() {
     initialMessages,
   });
 
+  /** Reveal saved pins only after persistence succeeds, using the current viewport. */
+  const handlePinComponent: typeof pinComponent = async (
+    componentId,
+    snapshot
+  ) => {
+    await pinComponent(componentId, snapshot);
+    if (getDesktopViewport()) {
+      setIsSidebarOpenOnDesktop(true);
+    } else {
+      // Move focus out of the chat before the mobile overlay makes it inert.
+      document.getElementById('pinned-components-toggle')?.focus();
+      setIsSidebarOpenOnMobile(true);
+    }
+  };
+
   const agentAnswerInProgress =
     status === 'streaming' || status === 'submitted';
 
@@ -45,7 +97,16 @@ export function App() {
   );
 
   return (
-    <main className="min-h-dvh bg-background relative">
+    <main
+      className="relative min-h-dvh bg-background"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && isSidebarOpen) {
+          if (isDesktop) setIsSidebarOpenOnDesktop(false);
+          else closeMobileSidebar();
+          document.getElementById('pinned-components-toggle')?.focus();
+        }
+      }}
+    >
       {/* Grid background */}
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.03]"
@@ -63,30 +124,47 @@ export function App() {
       <div className="pointer-events-none fixed bottom-1/4 -right-32 h-64 w-64 rounded-full bg-accent/20 blur-[100px]" />
 
       {/* Chat Interface */}
-      <div className="relative flex h-screen flex-col lg:flex-row">
-        <div className="flex flex-1 flex-col">
-          {/* Header */}
-          <ChatHeader />
+      <div className="relative flex h-dvh flex-col overflow-hidden">
+        <ChatHeader
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={toggleSidebar}
+        />
+        <div className="relative flex min-h-0 flex-1">
+          <PinnedComponentsPanel
+            pinnedComponents={pinnedComponents}
+            restoreComponent={restoreComponent}
+            isLoading={isLoadingPinnedComponents}
+            disabled={isLoadingInitialMessages || agentAnswerInProgress}
+            isOpen={isSidebarOpen}
+            isOpenOnDesktop={isSidebarOpenOnDesktop}
+            isOpenOnMobile={isSidebarOpenOnMobile}
+            onClose={closeMobileSidebar}
+          />
+          <div
+            className="flex min-w-0 flex-1 flex-col"
+            inert={!isDesktop && isSidebarOpenOnMobile}
+          >
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-hidden">
+              <ChatMessages
+                messages={messages}
+                agentAnswerInProgress={
+                  agentAnswerInProgress || isLoadingInitialMessages
+                }
+                restoreComponent={restoreComponent}
+                pinComponent={handlePinComponent}
+                hasOlderMessages={hasOlderMessages}
+                isLoadingOlderMessages={isLoadingOlderMessages}
+                loadOlderMessages={loadOlderMessages}
+              />
+            </div>
 
-          {/* Chat Messages */}
-          <div className="flex-1 overflow-hidden">
-            <ChatMessages
-              messages={messages}
-              agentAnswerInProgress={
-                agentAnswerInProgress || isLoadingInitialMessages
-              }
-              restoreComponent={restoreComponent}
-              hasOlderMessages={hasOlderMessages}
-              isLoadingOlderMessages={isLoadingOlderMessages}
-              loadOlderMessages={loadOlderMessages}
+            {/* Chat Input */}
+            <ChatInput
+              onSendMessage={handleSendMessage}
+              disabled={isLoadingInitialMessages || agentAnswerInProgress}
             />
           </div>
-
-          {/* Chat Input */}
-          <ChatInput
-            onSendMessage={handleSendMessage}
-            disabled={isLoadingInitialMessages || agentAnswerInProgress}
-          />
         </div>
       </div>
     </main>

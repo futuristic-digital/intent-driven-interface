@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
+import type { ComponentInputSnapshot } from '@intent-driven-interface/backend/api-contracts';
 import type {
   IDIMessage,
   RestoreComponent,
@@ -13,6 +14,7 @@ export function ChatMessages({
   messages,
   agentAnswerInProgress,
   restoreComponent,
+  pinComponent,
   hasOlderMessages,
   isLoadingOlderMessages,
   loadOlderMessages,
@@ -20,6 +22,10 @@ export function ChatMessages({
   messages: IDIMessage<typeof componentMap>[];
   agentAnswerInProgress: boolean;
   restoreComponent: RestoreComponent<typeof componentMap>;
+  pinComponent: (
+    componentId: string,
+    snapshot: ComponentInputSnapshot
+  ) => Promise<void>;
   hasOlderMessages: boolean;
   isLoadingOlderMessages: boolean;
   loadOlderMessages: () => Promise<boolean>;
@@ -116,6 +122,7 @@ export function ChatMessages({
                   timestamp={message.timestamp}
                   renderComponentPart={part}
                   restoreComponent={restoreComponent}
+                  pinComponent={pinComponent}
                   disabled={agentAnswerInProgress}
                 />
               );
