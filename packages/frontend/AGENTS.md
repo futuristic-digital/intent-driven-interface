@@ -1,5 +1,12 @@
 Browser half of IDI: `useIDI`, the typed component map, and conversion between chat messages and AI SDK wire format.
 
+## Agent skill
+
+- Use the `intent-driven-interface` skill for IDI integration and component authoring.
+- If the skill is not available, check the host project's `@intent-driven-interface/skill` dependency and whether `.agents/skills/intent-driven-interface/SKILL.md` (Codex) or `.claude/skills/intent-driven-interface/SKILL.md` (Claude Code) is readable.
+- Report a missing dependency or missing/broken registration and recommend the commands in [Coding-agent setup](README.md#coding-agent-setup). Run setup from the host project, never from this dependency's directory. If already installed, only registration is needed; if `node_modules` is missing, restore dependencies first.
+
+
 ## Core rules
 
 - Keep `ComponentMapForBackend` conversion lossless for serializable schema fields; never put functions on the wire.

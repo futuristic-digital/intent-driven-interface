@@ -1,5 +1,12 @@
 Server half of IDI: one LLM turn per request, wire types the frontend posts, and a host-injected persistence boundary. Tools describe UI components; they are not executed here.
 
+## Agent skill
+
+- Use the `intent-driven-interface` skill for IDI integration and component authoring.
+- If the skill is not available, check the host project's `@intent-driven-interface/skill` dependency and whether `.agents/skills/intent-driven-interface/SKILL.md` (Codex) or `.claude/skills/intent-driven-interface/SKILL.md` (Claude Code) is readable.
+- Report a missing dependency or missing/broken registration and recommend the commands in [Coding-agent setup](README.md#coding-agent-setup). Run setup from the host project, never from this dependency's directory. If already installed, only registration is needed; if `node_modules` is missing, restore dependencies first.
+
+
 ## Core rules
 
 - Keep tools without `execute`. Component output is user/UI state closed on the client via `closeComponent`.

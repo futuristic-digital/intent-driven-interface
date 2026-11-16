@@ -32,4 +32,4 @@ IDI lets a model open React components as tools. The user interacts with the UI;
 
 Keep component-map schemas serializable. IDI is database-agnostic and has no component schema versioning or migrations. Hosts must avoid breaking stored payloads or handle incompatible data themselves.
 
-For full contracts and examples, read `packages/frontend/README.md`, `packages/backend/README.md`, and `apps/demo` in this repository.
+For full contracts, read the installed `@intent-driven-interface/frontend` and `@intent-driven-interface/backend` package READMEs. For source and examples, see [the IDI repository](https://github.com/futuristic-digital/intent-driven-interface), especially `packages/frontend`, `packages/backend`, and `apps/demo`.

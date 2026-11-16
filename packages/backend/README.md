@@ -2,6 +2,19 @@
 
 Server orchestration for Intent-Driven Interface (IDI). Each request runs one AI SDK turn. Tools describe interactive components; they have no server-side `execute`. The frontend resumes the conversation after the user closes a component.
 
+## Coding-agent setup
+
+For coding-agent-assisted development, install and activate `@intent-driven-interface/skill`. It provides shared frontend/backend integration guidance and component-authoring rules.
+
+Run from your application's directory containing `package.json`, not from inside `node_modules`:
+
+```sh
+npm install --save-dev @intent-driven-interface/skill
+npx @intent-driven-interface/skill add-skill --agent codex
+```
+
+For Claude Code, use `--agent claude`. If the dependency is already installed, only run `add-skill`. This creates a symlink at `.agents/skills/intent-driven-interface` (Codex) or `.claude/skills/intent-driven-interface` (Claude Code); dependency updates keep its contents current. There is no install hook. If the skill is not discovered, check that the link's `SKILL.md` is readable and restart your agent session.
+
 ## Getting started
 
 Use Node.js 22+ and an application toolchain that supports TypeScript source exports.

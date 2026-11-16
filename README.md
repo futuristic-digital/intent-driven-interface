@@ -7,7 +7,7 @@ IDI lets an AI model open interactive React components instead of executing serv
 - [`@intent-driven-interface/frontend`](packages/frontend/README.md) — `useIDI`, `defineIDIComponent`, component maps, lifecycle, history, and pins.
 - [`@intent-driven-interface/backend`](packages/backend/README.md) — `IDIAgent`, one model turn per request, wire contracts, and host-injected persistence callbacks.
 - [`apps/demo`](apps/demo/README.md) — a Next.js logistics example with shipment lists, maps, and editing.
-- [`skills/intent-driven-interface`](skills/intent-driven-interface/SKILL.md) — the canonical agent skill for component authoring and host integration. Install this directory with a skills-compatible tool using this repository's Git URL.
+- [`@intent-driven-interface/skill`](packages/skill/README.md) — agent instructions for component authoring and host integration.
 
 IDI owns no database, authentication, or domain components. Hosts supply `saveMessages`, `loadMessages`, `loadPinnedComponents`, and `pinComponent`, plus an optional background-task scheduler. There is no component schema versioning or migration layer; hosts own compatibility with their stored data.
 
@@ -43,6 +43,17 @@ The demo posts to `/api/idi`. Conversation and component data are sent to AI Gat
 The packages currently export TypeScript source and require a compatible application bundler. The demo shows workspace consumption; sibling repositories can use local `file:` dependencies pointing to `packages/frontend` and `packages/backend`. Install this repository's dependencies before consuming those local links. Next.js hosts can list both packages in `transpilePackages`.
 
 Register a component map in the browser, connect `useIDI` to your route, and construct `IDIAgent` on the server with your persistence callbacks. Resolve and authorize the owner in the host route before passing its ID to the agent. See the package READMEs for the API.
+
+## Add the agent skill
+
+Install the skill as a development dependency, then register it with your coding agent:
+
+```sh
+npm install --save-dev @intent-driven-interface/skill
+npx @intent-driven-interface/skill add-skill --agent codex
+```
+
+For Claude Code, use `--agent claude`. Registration creates a project-local symlink to the installed package, so dependency updates also update the skill. There is no `postinstall` script. See the [skill README](packages/skill/README.md) for details.
 
 ## Build and check
 
