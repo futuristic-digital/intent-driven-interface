@@ -4,28 +4,28 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .next tsconfig.tsbuildinfo"
   },
   "dependencies": {
-    "@radix-ui/react-slot": "^1.5.0",
     "@intent-driven-interface/backend": "0.1.0",
     "@intent-driven-interface/frontend": "0.1.0",
-    "ai": "^7.0.156",
+    "@radix-ui/react-slot": "^1.5.0",
+    "ai": "^7.0.173",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.562.0",
-    "mapbox-gl": "^3.18.1",
-    "next": "^15.5.29",
+    "lucide-react": "^1.73.0",
+    "mapbox-gl": "^3.35.0",
+    "next": "^16.4.6",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "swr": "^2.5.1",
     "tailwind-merge": "^3.7.0",
-    "zod": "4.3.6"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.5",

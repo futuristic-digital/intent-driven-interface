@@ -210,6 +210,8 @@ export class IDIAgent {
       const uiMessageStream = toUIMessageStream({
         stream: stream.stream,
         tools,
+        // Preserve masked tool errors after AI SDK 7.0.171 changed the default.
+        redactToolErrors: true,
         messageMetadata: ({ part }) => {
           if (part.type === 'start') {
             const metadata: UIMessageMetadata = {

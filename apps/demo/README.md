@@ -13,7 +13,7 @@ These components let you confirm or cancel and return the result to the conversa
 
 ## Run locally
 
-1. Install the repository's workspace dependencies from the root. The demo uses `packages/frontend` and `packages/backend`, AI SDK 7 (`ai ^7.0.156`), and the framework's `@ai-sdk/react` 4 integration.
+1. Install the repository's workspace dependencies from the root. The demo uses Next.js 16, `packages/frontend` and `packages/backend`, AI SDK 7 (`ai ^7.0.173`), and the framework's `@ai-sdk/react ^4.0.177` integration.
 2. Create `apps/demo/.env.local`:
 
    ```dotenv
@@ -28,6 +28,8 @@ These components let you confirm or cancel and return the result to the conversa
    ```
 
 4. Open the URL printed by Next.js, normally `http://localhost:3000`.
+
+Development and production builds explicitly use Webpack. Visitor-cookie middleware retains the Edge runtime; Next.js's replacement `proxy` convention uses the Node.js runtime instead.
 
 Chat generation sends conversation and component data to AI Gateway and may incur model usage charges. Map views use Mapbox and its token. Use fictional data only.
 
