@@ -14,7 +14,7 @@ const quoteIdSchema = schema.enum([
 const quoteSchema = schema.object({
   id: quoteIdSchema,
   carrierName: schema.string(),
-  price: schema.number().positive().describe('Total fictional price in EUR.'),
+  price: schema.number().positive().describe('Total price in EUR.'),
   currency: schema.literal('EUR'),
   serviceLevel: schema.enum(['Economy', 'Standard', 'Express']),
   deliveryDate: schema.iso.date(),
@@ -85,7 +85,7 @@ const outputSchema = schema.discriminatedUnion('status', [
 /** Compare demo carriers and return an explicit choice, never a shipment mutation. */
 export const compareCarriers = defineIDIComponent({
   description:
-    'Compare three fictional carriers by EUR price, delivery date, and service level for a shipment. If the shipment ID is unknown, use selectShipment first. The user can edit an inclusive delivery deadline, select an eligible quote, and confirm or cancel. Dates add calendar days (including weekends), not business days. Confirmation returns the selected quote to the conversation only; it does not book shipping or update the shipment. No matching quotes means no selection can be confirmed.',
+    'Compare three carriers by EUR price, delivery date, and service level for a shipment. If the shipment ID is unknown, use selectShipment first. The user can edit an inclusive delivery deadline, select an eligible quote, and confirm or cancel. Dates add calendar days (including weekends), not business days. Confirmation records the selected quote. No matching quotes means no selection can be confirmed.',
   inputSchema: schema.object({
     shipmentId: schema
       .string()
@@ -137,7 +137,7 @@ export const compareCarriers = defineIDIComponent({
         await closeComponent({ setComponentOutput: output, agentFollowUp: false });
       } catch {
         setError(
-          'Could not return your choice to the conversation. Please try again.'
+          'Could not save your selection. Please try again.'
         );
       } finally {
         setBusy(null);
@@ -146,7 +146,7 @@ export const compareCarriers = defineIDIComponent({
 
     return (
       <section
-        aria-label="Compare fictional carriers"
+        aria-label="Compare carriers"
         aria-busy={busy !== null}
         className="space-y-4 rounded-lg border border-border bg-card p-4 text-card-foreground"
       >
@@ -159,8 +159,7 @@ export const compareCarriers = defineIDIComponent({
             </time>
           </p>
           <p className="text-xs text-muted-foreground">
-            Fictional EUR quotes · Calendar days, including weekends. Selecting
-            a quote does not book or change this shipment.
+            Prices in EUR · Delivery estimates include weekends.
           </p>
         </header>
 
@@ -332,7 +331,7 @@ export const compareCarriers = defineIDIComponent({
                 className="size-4 motion-safe:animate-spin"
               />
             )}
-            {busy === 'confirmed' ? 'Returning choice…' : 'Confirm selection'}
+            {busy === 'confirmed' ? 'Confirming…' : 'Confirm selection'}
           </Button>
         </div>
       </section>
@@ -355,7 +354,7 @@ export const compareCarriers = defineIDIComponent({
       <span>
         {output.status === 'cancelled'
           ? 'Carrier comparison cancelled'
-          : `Selected ${output.quote.carrierName} · ${formatPrice(output.quote)} · ${output.quote.serviceLevel} · ${output.quote.deliveryDate} (not booked)`}
+          : `Selected ${output.quote.carrierName} · ${formatPrice(output.quote)} · ${output.quote.serviceLevel} · ${output.quote.deliveryDate}`}
       </span>
     );
   },

@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   const visitorId = getDemoVisitorId(request);
   if (!visitorId) {
     return Response.json(
-      { error: 'Reload the demo to initialize a visitor cookie.' },
+      { error: 'Reload the page to initialize your session.' },
       { status: 400 }
     );
   }

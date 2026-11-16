@@ -45,6 +45,7 @@ export function ChatInput({
     'Update a shipment',
     'Choose a delivery slot',
     'Compare carriers',
+    'Let the customer know their delivery is delayed.',
   ];
 
   return (
@@ -104,7 +105,7 @@ export function ChatInput({
 
         {/* Footer Info */}
         <p className="mt-2 text-center font-mono text-[10px] text-muted-foreground">
-          <span className="tracking-wider">intent-driven interface - demo by</span>{' '}
+          <span className="tracking-wider">intent-driven interface - by</span>{' '}
           <a
             href="https://futuristic.digital"
             target="_blank"

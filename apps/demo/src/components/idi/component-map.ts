@@ -3,6 +3,7 @@ import { showShipments, selectShipment } from './shipments';
 import { signOut } from './sign-out';
 import { selectDeliverySlot } from './select-delivery-slot';
 import { compareCarriers } from './compare-carriers';
+import { composeDelayNotification } from './compose-delay-notification';
 import { updateShipment } from './update-shipment';
 
 export const componentMap = defineComponentMap({
@@ -12,4 +13,5 @@ export const componentMap = defineComponentMap({
   signOut,
   selectDeliverySlot,
   compareCarriers,
+  composeDelayNotification,
 });

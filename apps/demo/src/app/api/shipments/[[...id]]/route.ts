@@ -37,7 +37,7 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
   const visitorId = getDemoVisitorId(request);
   if (!visitorId) {
     return NextResponse.json(
-      { error: 'Reload the demo to initialize a visitor cookie.' },
+      { error: 'Reload the page to initialize your session.' },
       { status: 400 }
     );
   }
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   const visitorId = getDemoVisitorId(request);
   if (!visitorId) {
     return NextResponse.json(
-      { error: 'Reload the demo to initialize a visitor cookie.' },
+      { error: 'Reload the page to initialize your session.' },
       { status: 400 }
     );
   }

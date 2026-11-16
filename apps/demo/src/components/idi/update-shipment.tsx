@@ -16,7 +16,7 @@ function formatDateTimeLocal(isoString: string): string {
 
 export const updateShipment = defineIDIComponent({
   description:
-    'Open a shipment edit form for status, carrier, estimated delivery, delay reason, and current coordinates. Save changes updates this visitor’s temporary demo data and shows a success message. Opening the form does not save edits.',
+    'Open a shipment edit form for status, carrier, estimated delivery, delay reason, and current coordinates. Save changes updates the shipment and shows a success message. Opening the form does not save edits.',
   inputSchema: schema.object({
     shipmentId: schema
       .string()

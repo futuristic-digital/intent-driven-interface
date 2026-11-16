@@ -14,7 +14,7 @@ const shipmentSchema = schema.object({
 
 export const showShipments = defineIDIComponent({
   description:
-    'Show fictional shipments on a map or in a list, filtered by status. The view is read-only and includes routes and estimated delivery times. Use selectShipment when the user needs to choose a shipment for editing.',
+    'Show shipments on a map or in a list, filtered by status. The view is read-only and includes routes and estimated delivery times. Use selectShipment when the user needs to choose a shipment for editing.',
   inputSchema: shipmentSchema,
   component: function ShowShipments({ componentInput }) {
     return <Shipments {...componentInput} />;

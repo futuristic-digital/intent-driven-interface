@@ -3,7 +3,7 @@ import { X, LogOut } from 'lucide-react';
 
 export const signOut = defineIDIComponent({
   description:
-    'Show a simulated sign-out confirmation with Sign Out and Cancel buttons. Confirmation records the demo choice only; there is no authenticated account or real logout.',
+    'Show a sign-out confirmation with Sign Out and Cancel buttons. Return whether the user confirmed or cancelled.',
   inputSchema: schema.object({}),
   outputSchema: schema.object({ signedOut: schema.boolean() }),
   component: function SignOut({ closeComponent }) {
@@ -33,9 +33,9 @@ export const signOut = defineIDIComponent({
     );
   },
   componentSummary: function SignOutSummary() {
-    return <span>Sign out (demo)</span>;
+    return <span>Sign out</span>;
   },
   outputSummary: function SignOutResult({ signedOut }) {
-    return <span>{signedOut ? 'Demo sign-out confirmed' : 'Cancelled'}</span>;
+    return <span>{signedOut ? 'Signed out' : 'Cancelled'}</span>;
   },
 });

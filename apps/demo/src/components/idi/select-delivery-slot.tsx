@@ -57,7 +57,7 @@ const outputSchema = schema.discriminatedUnion('status', [
 /** Let the user choose a sample delivery window without rescheduling a shipment. */
 export const selectDeliverySlot = defineIDIComponent({
   description:
-    'Open a calendar and fictional delivery windows for a shipment. Use selectShipment first if the shipment ID is unknown. The user can change the date, choose an available window, and confirm or cancel. Sample availability is weekdays from tomorrow, in Europe/Berlin time, with one fully booked window per day. Confirmation returns a choice to the conversation only; it does not reserve capacity or update the shipment.',
+    'Open a calendar and delivery windows for a shipment. Use selectShipment first if the shipment ID is unknown. The user can change the date, choose an available window, and confirm or cancel. Availability is weekdays from tomorrow, in Europe/Berlin time, with one fully booked window per day. Confirmation records the selected delivery window.',
   inputSchema: schema.object({
     shipmentId: schema
       .string()
@@ -68,7 +68,7 @@ export const selectDeliverySlot = defineIDIComponent({
     date: schema.iso
       .date()
       .describe(
-        'Requested delivery date in YYYY-MM-DD. Resolve relative dates from the supplied browser time. If unspecified, use the next weekday after today. Past dates, today, and weekends have no sample availability.'
+        'Requested delivery date in YYYY-MM-DD. Resolve relative dates from the supplied browser time. If unspecified, use the next weekday after today. Past dates, today, and weekends have no availability.'
       ),
     selectedWindow: windowSchema
       .nullable()
@@ -118,7 +118,7 @@ export const selectDeliverySlot = defineIDIComponent({
         await closeComponent({ setComponentOutput: output, agentFollowUp: false });
       } catch {
         setError(
-          'Could not return your choice to the conversation. Please try again.'
+          'Could not save your selection. Please try again.'
         );
       } finally {
         setBusy(null);
@@ -127,7 +127,7 @@ export const selectDeliverySlot = defineIDIComponent({
 
     return (
       <section
-        aria-label="Select a fictional delivery slot"
+        aria-label="Select a delivery slot"
         aria-busy={busy !== null}
         className="space-y-4 rounded-lg border border-border bg-card p-4 text-card-foreground"
       >
@@ -137,8 +137,7 @@ export const selectDeliverySlot = defineIDIComponent({
             Shipment {componentInput.shipmentId}
           </p>
           <p className="text-xs text-muted-foreground">
-            Sample availability · All times Europe/Berlin. Selecting a slot does
-            not reserve or reschedule a delivery.
+            All times Europe/Berlin.
           </p>
         </header>
 
@@ -316,7 +315,7 @@ export const selectDeliverySlot = defineIDIComponent({
                 className="size-4 motion-safe:animate-spin"
               />
             )}
-            {busy === 'confirmed' ? 'Returning choice…' : 'Confirm selection'}
+            {busy === 'confirmed' ? 'Confirming…' : 'Confirm selection'}
           </Button>
         </div>
       </section>
