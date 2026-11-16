@@ -2,22 +2,22 @@ import { type UseChatHelpers } from '@ai-sdk/react';
 import { type ToolUIPart, type UIToolInvocation } from 'ai';
 import { z } from 'zod';
 
-import { type AiSdkMessage } from './ai-sdk-message.format';
+import { type AiSdkMessage } from './ai-sdk-message.format.js';
 import {
   type CallComponentOptionsInternal,
   isComponentId,
-} from './call-component';
-import { resolveComponentInput } from './component-input';
+} from './call-component.js';
+import { resolveComponentInput } from './component-input.js';
 import {
   findComponentPart,
   finalizeComponentPart,
   isLatestComponent,
   readToolMetadata,
   updateComponentPart,
-} from './component-lifecycle';
-import { type IDIBackend } from './save-message';
-import { type ComponentRenderUIPart, type IDIMessage } from './idi-message';
-import { type ComponentMap } from '../component-map/define-component-map';
+} from './component-lifecycle.js';
+import { type IDIBackend } from './save-message.js';
+import { type ComponentRenderUIPart, type IDIMessage } from './idi-message.js';
+import { type ComponentMap } from '../component-map/define-component-map.js';
 import {
   type CallComponent,
   type RestoreComponent,
@@ -27,7 +27,7 @@ import {
   type ComponentToolState,
   type CloseComponentOptions,
   type ComponentStateUpdate,
-} from '../component-map/define-idi-component';
+} from '../component-map/define-idi-component.js';
 
 const toComponentRenderPart = <
   COMPONENT_MAP extends ComponentMap,

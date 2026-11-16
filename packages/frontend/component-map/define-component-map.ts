@@ -1,4 +1,4 @@
-import { type ComponentAsTool } from './define-idi-component';
+import { type ComponentAsTool } from './define-idi-component.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ComponentMap = Record<string, ComponentAsTool<any, any>>;

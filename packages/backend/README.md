@@ -17,7 +17,7 @@ For Claude Code, use `--agent claude`. If the dependency is already installed, o
 
 ## Getting started
 
-Use Node.js 22+ and an application toolchain that supports TypeScript source exports.
+Use Node.js 22+. The package ships ESM JavaScript and TypeScript declarations.
 
 ```sh
 npm install @intent-driven-interface/backend ai

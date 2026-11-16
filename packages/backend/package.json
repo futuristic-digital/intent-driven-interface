@@ -1,25 +1,33 @@
 {
   "name": "@intent-driven-interface/backend",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "dist",
+    "AGENTS.md"
+  ],
   "exports": {
     ".": {
-      "types": "./index.ts",
-      "default": "./index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./api-contracts": {
-      "types": "./api-contracts.ts",
-      "default": "./api-contracts.ts"
+      "types": "./dist/api-contracts.d.ts",
+      "default": "./dist/api-contracts.js"
     },
     "./trim-messages-for-agent": {
-      "types": "./trim-messages-for-agent.ts",
-      "default": "./trim-messages-for-agent.ts"
+      "types": "./dist/trim-messages-for-agent.d.ts",
+      "default": "./dist/trim-messages-for-agent.js"
     }
   },
   "scripts": {
+    "build": "npm run clean && tsc",
+    "dev": "tsc --watch --preserveWatchOutput",
+    "clean": "rm -rf dist",
+    "prepack": "turbo run build --filter=@intent-driven-interface/backend",
     "lint": "eslint .",
     "type-check": "tsc --noEmit"
   },

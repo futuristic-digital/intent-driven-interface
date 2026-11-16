@@ -1,6 +1,6 @@
 import { jsonSchema, tool, type ToolSet, type UIMessage } from 'ai';
 
-import { type ComponentMapForBackend } from './api-contracts';
+import { type ComponentMapForBackend } from './api-contracts.js';
 
 /**
  * Turns a wire-format component map into AI SDK tool schemas.

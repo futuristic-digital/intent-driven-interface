@@ -5,9 +5,9 @@ import {
 } from '@intent-driven-interface/backend/api-contracts';
 import { type ToolUIPart } from 'ai';
 
-import { type AiSdkMessage } from './ai-sdk-message.format';
-import { saveMessage, type IDIBackend } from './save-message';
-import { type ComponentMap } from '../component-map/define-component-map';
+import { type AiSdkMessage } from './ai-sdk-message.format.js';
+import { saveMessage, type IDIBackend } from './save-message.js';
+import { type ComponentMap } from '../component-map/define-component-map.js';
 
 /** Reads only the supported IDI metadata from an SDK part. */
 export const readToolMetadata = (part: {

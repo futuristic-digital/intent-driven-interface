@@ -4,16 +4,16 @@ export {
   type ComponentInputSnapshot,
   type UIMessageMetadata,
   type IDIMessageWire,
-} from './api-contracts';
-export { canonicalizePinInputs } from './canonicalize-pin-inputs';
+} from './api-contracts.js';
+export { canonicalizePinInputs } from './canonicalize-pin-inputs.js';
 export {
   buildToolsFromComponentMap,
   type IDIChatRequestBody,
-} from './build-tools';
+} from './build-tools.js';
 export {
   defaultAgentSettings,
   type IDIAgentSettings,
-} from './default-agent-settings';
+} from './default-agent-settings.js';
 export {
   IDIAgent,
   type IDIAgentHandleChatRequestOptions,
@@ -23,8 +23,8 @@ export {
   type IDIAgentLoadMessages,
   type IDIAgentLoadPinnedComponents,
   type IDIAgentPinComponent,
-} from './idi-agent';
+} from './idi-agent.js';
 export {
   trimMessagesForAgent,
   AGENT_CONTEXT_MAX_MESSAGES,
-} from './trim-messages-for-agent';
+} from './trim-messages-for-agent.js';

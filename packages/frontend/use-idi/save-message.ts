@@ -1,4 +1,4 @@
-import { type AiSdkMessage } from './ai-sdk-message.format';
+import { type AiSdkMessage } from './ai-sdk-message.format.js';
 
 export type IDIBackend = {
   url: string;

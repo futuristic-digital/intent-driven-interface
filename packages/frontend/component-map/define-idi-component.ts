@@ -1,6 +1,6 @@
 import { type ZodType, z } from 'zod';
 
-import { type ComponentMap } from './define-component-map';
+import { type ComponentMap } from './define-component-map.js';
 
 export type ComponentToolState =
   'input-available' | 'input-streaming' | 'output-available';

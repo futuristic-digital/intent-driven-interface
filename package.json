@@ -10,6 +10,7 @@
   "scripts": {
     "dev:demo": "turbo run dev --filter=demo...",
     "build:demo": "turbo run build --filter=demo",
+    "build:packages": "turbo run build --filter='./packages/*'",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
     "type-check": "turbo run type-check",

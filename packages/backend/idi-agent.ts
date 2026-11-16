@@ -16,16 +16,16 @@ import {
   type ComponentInputSnapshot,
   type PinnedIDIComponent,
   type UIMessageMetadata,
-} from './api-contracts';
-import { buildToolsFromComponentMap } from './build-tools';
-import { canonicalizePinInputs } from './canonicalize-pin-inputs';
+} from './api-contracts.js';
+import { buildToolsFromComponentMap } from './build-tools.js';
+import { canonicalizePinInputs } from './canonicalize-pin-inputs.js';
 import {
   defaultAgentSettings,
   type IDIAgentSettings,
-} from './default-agent-settings';
-import { parseHandleChatRequestBody } from './handle-chat-request-body';
-import { convertIDIMessagesToModelMessages } from './model-message.conversion';
-import { trimMessagesForAgent } from './trim-messages-for-agent';
+} from './default-agent-settings.js';
+import { parseHandleChatRequestBody } from './handle-chat-request-body.js';
+import { convertIDIMessagesToModelMessages } from './model-message.conversion.js';
+import { trimMessagesForAgent } from './trim-messages-for-agent.js';
 
 const logger = createLoggerForModule(import.meta.url);
 

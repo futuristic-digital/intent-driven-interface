@@ -17,7 +17,7 @@ For Claude Code, use `--agent claude`. If the dependency is already installed, o
 
 ## Getting started
 
-Use React 19.2.4+ and a toolchain that supports TypeScript source exports. Message and component-call IDs use the AI SDK's `generateId`.
+Use React 19.2.4+. The package ships ESM JavaScript and TypeScript declarations, preserving React client boundaries. Message and component-call IDs use the AI SDK's `generateId`.
 
 ```sh
 npm install @intent-driven-interface/frontend @intent-driven-interface/backend ai react

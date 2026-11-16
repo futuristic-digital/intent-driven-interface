@@ -1,4 +1,4 @@
-import { type ComponentAsTool } from '../component-map/define-idi-component';
+import { type ComponentAsTool } from '../component-map/define-idi-component.js';
 
 /** Resolves effective input without initializing or mutating the optional saved state. */
 export const resolveComponentInput = <INPUT extends object>(

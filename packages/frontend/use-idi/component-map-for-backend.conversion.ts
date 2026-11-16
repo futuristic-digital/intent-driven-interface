@@ -1,7 +1,7 @@
 import { type ComponentMapForBackend } from '@intent-driven-interface/backend/api-contracts';
 import { zodSchema } from 'ai';
 
-import { type ComponentMap } from '../component-map/define-component-map';
+import { type ComponentMap } from '../component-map/define-component-map.js';
 
 /**
  * Converts the frontend component map to wire-format JSON Schema for the IDI backend.

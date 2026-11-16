@@ -1,6 +1,6 @@
 import { type TextUIPart } from 'ai';
 
-import { type AiSdkMessage } from './ai-sdk-message.format';
+import { type AiSdkMessage } from './ai-sdk-message.format.js';
 
 /**
  * Builds static seed messages in the AI SDK wire format used by `useIDI`.

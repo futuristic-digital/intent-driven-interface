@@ -3,16 +3,16 @@ import { type UIToolMetadata } from '@intent-driven-interface/backend/api-contra
 import { generateId, type ToolUIPart } from 'ai';
 import { z } from 'zod';
 
-import { type AiSdkMessage } from './ai-sdk-message.format';
-import { closeOpenComponents } from './component-lifecycle';
-import { saveMessage, type IDIBackend } from './save-message';
-import { type ComponentMap } from '../component-map/define-component-map';
+import { type AiSdkMessage } from './ai-sdk-message.format.js';
+import { closeOpenComponents } from './component-lifecycle.js';
+import { saveMessage, type IDIBackend } from './save-message.js';
+import { type ComponentMap } from '../component-map/define-component-map.js';
 import {
   type CallComponent,
   type CallComponentOptions,
   type RestoreComponent,
   type ComponentCallInput,
-} from '../component-map/define-idi-component';
+} from '../component-map/define-idi-component.js';
 
 /** Matches external history/pin IDs to registered component keys. */
 export const isComponentId = <COMPONENT_MAP extends ComponentMap>(

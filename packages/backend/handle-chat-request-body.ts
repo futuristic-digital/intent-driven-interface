@@ -3,8 +3,8 @@ import { z } from 'zod';
 import {
   clientTimeContextSchema,
   componentInputSnapshotSchema,
-} from './api-contracts';
-import { type IDIAgentHandleChatRequestOptions } from './idi-agent';
+} from './api-contracts.js';
+import { type IDIAgentHandleChatRequestOptions } from './idi-agent.js';
 
 const handleChatRequestBodySchema = z.discriminatedUnion('operation', [
   z.object({

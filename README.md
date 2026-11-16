@@ -40,7 +40,13 @@ The demo posts to `/api/idi`. Conversation and component data are sent to AI Gat
 
 ## Use in a host application
 
-The packages currently export TypeScript source and require a compatible application bundler. The demo shows workspace consumption; sibling repositories can use local `file:` dependencies pointing to `packages/frontend` and `packages/backend`. Install this repository's dependencies before consuming those local links. Next.js hosts can list both packages in `transpilePackages`.
+Install the published packages:
+
+```sh
+npm install @intent-driven-interface/frontend @intent-driven-interface/backend
+```
+
+Both packages ship ESM JavaScript and TypeScript declarations. For local workspace or `file:` consumption, run `npm run build:packages` first; `npm run dev:demo` builds dependencies and watches package sources for changes.
 
 Register a component map in the browser, connect `useIDI` to your route, and construct `IDIAgent` on the server with your persistence callbacks. Resolve and authorize the owner in the host route before passing its ID to the agent. See the package READMEs for the API.
 
@@ -58,9 +64,12 @@ For Claude Code, use `--agent claude`. Registration creates a project-local syml
 ## Build and check
 
 ```sh
+npm run build:packages
 npm run lint
 npm run type-check
 npm run build:demo
 ```
+
+Package builds write JavaScript and declarations to each package's `dist/` directory. `npm pack` and `npm publish` run the package's `prepack` hook, which builds it and its workspace dependencies before packaging. Only `dist/`, agent guidance, the README, and package metadata are published.
 
 For Vercel, set the project root to `apps/demo` and configure the same environment variables. Its `vercel.json` builds the app and workspace dependencies.

@@ -29,6 +29,8 @@ These components let you confirm or cancel and return the result to the conversa
 
 4. Open the URL printed by Next.js, normally `http://localhost:3000`.
 
+The root development command builds the IDI packages and watches their sources, so edits update the compiled workspace exports. Production builds also build package dependencies first.
+
 Development and production builds explicitly use Webpack. Visitor-cookie middleware retains the Edge runtime; Next.js's replacement `proxy` convention uses the Node.js runtime instead.
 
 Chat generation sends conversation and component data to AI Gateway and may incur model usage charges. Map views use Mapbox and its token. Use fictional data only.
@@ -62,6 +64,6 @@ All storage is process-local: data can disappear on eviction, server restart, or
 Once workspace dependencies are installed, run from the repository root:
 
 ```sh
-npm run type-check --workspace=demo
+npm run type-check
 npm run lint --workspace=demo
 ```

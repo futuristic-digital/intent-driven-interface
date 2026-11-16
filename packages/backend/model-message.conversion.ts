@@ -1,6 +1,6 @@
 import { convertToModelMessages, type UIMessage } from 'ai';
 
-import { uiToolMetadataSchema } from './api-contracts';
+import { uiToolMetadataSchema } from './api-contracts.js';
 
 /**
  * Tool-call arguments retain original input. Tool results expose optional user-edited

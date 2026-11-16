@@ -15,22 +15,22 @@ import {
 } from 'ai';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { type AiSdkMessage } from './ai-sdk-message.format';
-import { createCallComponent, createRestoreComponent } from './call-component';
+import { type AiSdkMessage } from './ai-sdk-message.format.js';
+import { createCallComponent, createRestoreComponent } from './call-component.js';
 import {
   closeOpenComponents,
   closeInactiveComponents,
   hasInactiveComponents,
-} from './component-lifecycle';
-import { convertComponentMapForBackend } from './component-map-for-backend.conversion';
-import { type IDIBackend } from './save-message';
-import { type IDIMessage } from './idi-message';
-import { convertAiSdkMessagesToIDIMessages } from './idi-message.conversion';
-import { type ComponentMap } from '../component-map/define-component-map';
+} from './component-lifecycle.js';
+import { convertComponentMapForBackend } from './component-map-for-backend.conversion.js';
+import { type IDIBackend } from './save-message.js';
+import { type IDIMessage } from './idi-message.js';
+import { convertAiSdkMessagesToIDIMessages } from './idi-message.conversion.js';
+import { type ComponentMap } from '../component-map/define-component-map.js';
 import {
   type CallComponent,
   type RestoreComponent,
-} from '../component-map/define-idi-component';
+} from '../component-map/define-idi-component.js';
 
 type UseIDIOptions<COMPONENT_MAP extends ComponentMap> = {
   id?: string;

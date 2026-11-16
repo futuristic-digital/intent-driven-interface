@@ -1,17 +1,25 @@
 {
   "name": "@intent-driven-interface/frontend",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "dist",
+    "AGENTS.md"
+  ],
   "exports": {
     ".": {
-      "types": "./index.ts",
-      "default": "./index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "scripts": {
+    "build": "npm run clean && tsc",
+    "dev": "tsc --watch --preserveWatchOutput",
+    "clean": "rm -rf dist",
+    "prepack": "turbo run build --filter=@intent-driven-interface/frontend",
     "lint": "eslint .",
     "type-check": "tsc --noEmit"
   },
@@ -20,7 +28,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.177",
-    "@intent-driven-interface/backend": "*",
+    "@intent-driven-interface/backend": "^0.1.1",
     "ai": "^7.0.173",
     "zod": "^4.6.7"
   },

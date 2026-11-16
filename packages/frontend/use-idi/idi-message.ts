@@ -5,13 +5,13 @@ import {
   type UIToolInvocation,
 } from 'ai';
 
-import { type ComponentMap } from '../component-map/define-component-map';
+import { type ComponentMap } from '../component-map/define-component-map.js';
 import {
   type ComponentRenderProps,
   type ComponentCallInput,
   type ComponentInputOf,
   type ComponentToolState,
-} from '../component-map/define-idi-component';
+} from '../component-map/define-idi-component.js';
 
 /** IDI messages used in the frontend and sent to the IDI backend. */
 export type IDIMessage<COMPONENT_MAP extends ComponentMap> = {
