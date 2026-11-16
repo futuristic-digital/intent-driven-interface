@@ -1,0 +1,38 @@
+{
+  "name": "@intent-driven-interface/backend",
+  "version": "0.1.0",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./api-contracts": {
+      "types": "./api-contracts.ts",
+      "default": "./api-contracts.ts"
+    },
+    "./trim-messages-for-agent": {
+      "types": "./trim-messages-for-agent.ts",
+      "default": "./trim-messages-for-agent.ts"
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@futuristic.digital/logger": "^0.1.1",
+    "ai": "^7.0.156",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5"
+  }
+}

@@ -2,9 +2,10 @@
   "name": "intent-driven-interface",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "workspaces": [
     "apps/*",
-    "libs/*"
+    "packages/*"
   ],
   "scripts": {
     "dev:demo": "turbo run dev --filter=demo...",
@@ -30,12 +31,12 @@
     "typescript-eslint": "^8.72.2"
   },
   "engines": {
-    "node": "^20.19.0 || ^22.13.0 || >=24.0.0",
-    "npm": ">=9.0.0"
+    "node": ">=22.13.0",
+    "npm": ">=11.11.0"
   },
-  "packageManager": "npm@9.0.0",
+  "packageManager": "npm@11.11.0",
   "dependencies": {
-    "ai": "^6.0.331",
+    "ai": "^7.0.156",
     "zod": "4.3.6"
   }
 }

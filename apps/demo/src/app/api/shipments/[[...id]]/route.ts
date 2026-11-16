@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db } from '../../../../server/api-db/db';
+import { getDemoDatabase } from '../../../../server/api-db/db';
+import { getDemoVisitorId } from '../../../../server/demo-visitor';
 
 // Keep list/detail/update in one route so serverless deployments do not split
 // the demo's process-local store between separate endpoint functions.
@@ -33,6 +34,14 @@ type RouteContext = { params: Promise<{ id?: string[] }> };
 
 /** List the fixed demo seed or retrieve one shipment. */
 export async function GET(request: NextRequest, { params }: RouteContext) {
+  const visitorId = getDemoVisitorId(request);
+  if (!visitorId) {
+    return NextResponse.json(
+      { error: 'Reload the demo to initialize a visitor cookie.' },
+      { status: 400 }
+    );
+  }
+  const db = getDemoDatabase(visitorId);
   const { id = [] } = await params;
   if (id.length > 1) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -62,6 +71,14 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
 
 /** Apply validated edits to one shipment in the demo's in-memory store. */
 export async function POST(request: NextRequest, { params }: RouteContext) {
+  const visitorId = getDemoVisitorId(request);
+  if (!visitorId) {
+    return NextResponse.json(
+      { error: 'Reload the demo to initialize a visitor cookie.' },
+      { status: 400 }
+    );
+  }
+  const db = getDemoDatabase(visitorId);
   const { id = [] } = await params;
   const [shipmentId] = id;
   if (id.length !== 1 || !shipmentId) {

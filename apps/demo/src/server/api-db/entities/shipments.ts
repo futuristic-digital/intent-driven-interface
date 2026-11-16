@@ -1,4 +1,4 @@
-import { Shipment } from '@uai/shared';
+import type { Shipment } from '../../../domain/shipment';
 
 export const SHIPMENTS: Omit<Shipment, 'createdAt' | 'updatedAt'>[] = [
   {

@@ -1,4 +1,4 @@
-import { TextUIPart } from '@uai/client';
+import type { TextUIPart } from '@intent-driven-interface/frontend';
 import { cn } from '../../utils/cn';
 import { Bot, User } from 'lucide-react';
 import { ChatMessageTimestamp } from './chat-message-timestamp';

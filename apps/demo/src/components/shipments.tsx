@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import useSWR from 'swr';
 import { fetcher } from '../utils/api';
-import type { Shipment } from '@uai/shared';
+import type { Shipment } from '../domain/shipment';
 import { Map, Marker } from './map';
 import { Check } from 'lucide-react';
 

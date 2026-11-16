@@ -1,13 +1,16 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { ChatMessages } from './ui/chat-message/chat-messages';
 import { ChatHeader } from './ui/header';
 import { ChatInput } from './ui/chat-input';
-import { useUai, defineInitialMessages } from '@uai/client';
-import { componentMap } from './components/uai/component-map';
+import {
+  useIDI,
+  defineInitialMessages,
+} from '@intent-driven-interface/frontend';
+import { componentMap } from './components/idi/component-map';
 
-const uaiServerUrl = '/api/uai-server';
+const idiBackend = { url: '/api/idi', requestHeaders: {} };
 
 const initialMessages = defineInitialMessages([
   {
@@ -18,22 +21,23 @@ const initialMessages = defineInitialMessages([
 ]);
 
 export function App() {
-  const { messages, sendMessage, status } = useUai({
-    uaiServerUrl,
+  const {
+    messages,
+    sendMessage,
+    status,
+    restoreComponent,
+    isLoadingInitialMessages,
+    hasOlderMessages,
+    isLoadingOlderMessages,
+    loadOlderMessages,
+  } = useIDI({
+    idiBackend,
     componentMap,
     initialMessages,
   });
 
   const agentAnswerInProgress =
     status === 'streaming' || status === 'submitted';
-
-  const waitingForComponentOutput = useMemo(() => {
-    const lastMessage = messages[messages.length - 1];
-    return lastMessage.parts.some(
-      (part) =>
-        part.type === 'render-component' && part.state !== 'output-available'
-    );
-  }, [messages]);
 
   const handleSendMessage = useCallback(
     async (text: string) => await sendMessage(text),
@@ -68,14 +72,20 @@ export function App() {
           <div className="flex-1 overflow-hidden">
             <ChatMessages
               messages={messages}
-              agentAnswerInProgress={agentAnswerInProgress}
+              agentAnswerInProgress={
+                agentAnswerInProgress || isLoadingInitialMessages
+              }
+              restoreComponent={restoreComponent}
+              hasOlderMessages={hasOlderMessages}
+              isLoadingOlderMessages={isLoadingOlderMessages}
+              loadOlderMessages={loadOlderMessages}
             />
           </div>
 
           {/* Chat Input */}
           <ChatInput
             onSendMessage={handleSendMessage}
-            disabled={agentAnswerInProgress || waitingForComponentOutput}
+            disabled={isLoadingInitialMessages || agentAnswerInProgress}
           />
         </div>
       </div>

@@ -1,42 +1,55 @@
-# Intent-driven interface
+# Intent Driven Interface
 
-A logistics demo for an intent-driven interface: describe what you want in plain language and the app presents the relevant UI. It uses an AI agent to select interface components and includes shipment lists, details, updates, and maps.
+IDI lets an AI model open interactive React components instead of executing server-side tools. Users make choices in the UI, and those results drive the next conversation turn.
 
-## Project structure
+## Packages
 
-- `apps/demo` – the single Next.js application, including the UI and API routes.
-- `libs/uai-client` – client hook and component-map helpers.
-- `libs/uai-shared` – shared domain types and schemas.
+- [`@intent-driven-interface/frontend`](packages/frontend/README.md) — `useIDI`, `defineIDIComponent`, component maps, lifecycle, history, and pins.
+- [`@intent-driven-interface/backend`](packages/backend/README.md) — `IDIAgent`, one model turn per request, wire contracts, and host-injected persistence callbacks.
+- [`apps/demo`](apps/demo/README.md) — a Next.js logistics example with shipment lists, maps, and editing.
+- [`skills/intent-driven-interface`](skills/intent-driven-interface/SKILL.md) — the canonical agent skill for component authoring and host integration. Install this directory with a skills-compatible tool using this repository's Git URL.
 
-## Getting started
+IDI owns no database, authentication, or domain components. Hosts supply `saveMessages`, `loadMessages`, `loadPinnedComponents`, and `pinComponent`, plus an optional background-task scheduler. There is no component schema versioning or migration layer; hosts own compatibility with their stored data.
 
-Requirements: Node.js 24 or newer, Node.js 22.13+ (22.x), or Node.js 20.19+ (20.x), and npm 9 or newer.
+## Run the demo
 
-```bash
-npm install
+Use Node.js 22.13+ and npm 11.11+.
+
+1. Install workspace dependencies:
+
+   ```sh
+   npm ci
+   ```
+
+2. Create `apps/demo/.env.local`:
+
+   ```dotenv
+   AI_GATEWAY_API_KEY=your_ai_gateway_key
+   NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_access_token
+   ```
+
+3. Start the app:
+
+   ```sh
+   npm run dev:demo
+   ```
+
+4. Open the URL printed by Next.js, normally `http://localhost:3000`.
+
+The demo posts to `/api/idi`. Conversation and component data are sent to AI Gateway, which may incur model charges; maps use Mapbox. Use fictional data only. Visitor-scoped history, pins, and shipment edits are held in process memory and can disappear on restart or eviction. They are not shared between server instances.
+
+## Use in a host application
+
+The packages currently export TypeScript source and require a compatible application bundler. The demo shows workspace consumption; sibling repositories can use local `file:` dependencies pointing to `packages/frontend` and `packages/backend`. Install this repository's dependencies before consuming those local links. Next.js hosts can list both packages in `transpilePackages`.
+
+Register a component map in the browser, connect `useIDI` to your route, and construct `IDIAgent` on the server with your persistence callbacks. Resolve and authorize the owner in the host route before passing its ID to the agent. See the package READMEs for the API.
+
+## Build and check
+
+```sh
+npm run lint
+npm run type-check
+npm run build:demo
 ```
 
-Create `apps/demo/.env.local` with your [Vercel AI Gateway](https://vercel.com/ai-gateway) key and public Mapbox token:
-
-```bash
-AI_GATEWAY_API_KEY=your_ai_gateway_key
-NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_access_token
-```
-
-Run the app from the repository root:
-
-```bash
-npm run dev:demo
-```
-
-Then open the URL printed by Next.js (normally `http://localhost:3000`). Shipment API routes run in the same app. Shipment data is held in memory per server instance and resets when that instance restarts. It is not shared between instances and is intended only for the demo.
-
-## Deploying to Vercel
-
-Set the project's Root Directory to `apps/demo`. Its `vercel.json` builds workspace dependencies before the Next.js app. Configure the same environment variables in Vercel's project settings.
-
-## Other commands
-
-- `npm run build:demo` – build the Next.js app and its workspace dependencies.
-- `npm run lint` – lint the workspaces.
-- `npm run type-check` – type-check the workspaces.
+For Vercel, set the project root to `apps/demo` and configure the same environment variables. Its `vercel.json` builds the app and workspace dependencies.

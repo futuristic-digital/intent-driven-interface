@@ -13,9 +13,9 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.5.0",
-    "@uai/client": "*",
-    "@uai/shared": "*",
-    "ai": "^6.0.331",
+    "@intent-driven-interface/backend": "0.1.0",
+    "@intent-driven-interface/frontend": "0.1.0",
+    "ai": "^7.0.156",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.562.0",
