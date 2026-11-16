@@ -1,7 +1,8 @@
 import { defineComponentMap } from '@intent-driven-interface/frontend';
 import { showShipments, selectShipment } from './shipments';
 import { signOut } from './sign-out';
-import { changeLanguage } from './change-language';
+import { selectDeliverySlot } from './select-delivery-slot';
+import { compareCarriers } from './compare-carriers';
 import { updateShipment } from './update-shipment';
 
 export const componentMap = defineComponentMap({
@@ -9,5 +10,6 @@ export const componentMap = defineComponentMap({
   selectShipment,
   updateShipment,
   signOut,
-  changeLanguage,
+  selectDeliverySlot,
+  compareCarriers,
 });

@@ -43,9 +43,8 @@ export function ChatInput({
   const suggestions = [
     'Show the delayed shipments',
     'Update a shipment',
-    'Sign out',
-    // in german: Change the language to German
-    'Sprache auf Deutsch ändern',
+    'Choose a delivery slot',
+    'Compare carriers',
   ];
 
   return (

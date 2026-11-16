@@ -17,7 +17,7 @@ const initialMessages = defineInitialMessages([
   {
     id: 'initial',
     role: 'assistant',
-    text: "Welcome! This is an Intent-driven Interface demo — a different way to use apps.\n\nInstead of hunting for buttons and menus, you simply type what you want to do in your own words, like in a chat.\n\nThis demo is a simple logistics management app — and in this app it's actually happening: when you type, an AI model interprets your text and selects the right components with the appropriate options based on your intent. You can ask to see your shipments, pick one to view or update its details, change the language of the interface, or sign out. Type any request in the box below, or use the suggestions above it to get started quickly.",
+    text: "Welcome! This is an Intent-driven Interface demo — a different way to use apps.\n\nInstead of hunting for buttons and menus, you simply type what you want to do in your own words, like in a chat.\n\nThis demo is a simple logistics management app — and in this app it's actually happening: when you type, an AI model interprets your text and selects the right components with the appropriate options based on your intent. You can ask to see your shipments, pick one to update its details, choose a sample delivery slot, compare fictional carrier quotes, or sign out. Slot and carrier selections return your choice to the conversation; they do not book a delivery or change the shipment. Type any request in the box below, or use the suggestions above it to get started quickly.",
   },
 ]);
 

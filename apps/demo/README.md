@@ -1,6 +1,13 @@
 # IDI logistics demo
 
-A Next.js logistics demo powered by the extracted Intent-Driven Interface framework. Ask to see shipments on a map or in a list, select a shipment, or update its details. The existing language picker and sign-out confirmation are simulated actions, not real translation or authentication.
+A Next.js logistics demo powered by the extracted Intent-Driven Interface framework. Ask to see shipments on a map or in a list, select a shipment, update its details, choose a delivery slot, or compare carriers. Sign-out is simulated, not real authentication.
+
+## Try the interactive components
+
+- **Delivery slots:** “Choose a delivery slot for shp-1 next Friday afternoon.” Browse dates and choose a sample time window. Availability is weekdays from tomorrow, with times in Europe/Berlin.
+- **Carrier comparison:** “Compare carriers for shp-1 delivering by next Thursday.” Compare three fictional EUR quotes by price, delivery date, and service level. Edit the deadline to see which quotes qualify; delivery estimates use calendar days, including weekends.
+
+Both components let you confirm or cancel and return the result to the conversation. They do **not** book shipping, reserve capacity, or change shipment data. Edited dates and selections are preserved when reopening history or pins.
 
 ## Run locally
 
