@@ -31,7 +31,7 @@ export function ChatMessages({
   loadOlderMessages: () => Promise<boolean>;
 }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+
 
   const lastMessage = messages.at(-1);
   const latestContent = JSON.stringify({
@@ -72,7 +72,8 @@ export function ChatMessages({
       !previous.loadingOlder &&
       previous.latestContent !== latestContent
     ) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      // Scroll only the message list; scrollIntoView can also shift the app's ancestors.
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     }
     previousHistoryRef.current = {
       latestContent,
@@ -133,7 +134,7 @@ export function ChatMessages({
         )}
 
         {agentAnswerInProgress && <TypingIndicator />}
-        <div ref={messagesEndRef} />
+
       </div>
     </div>
   );
