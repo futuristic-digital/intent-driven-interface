@@ -31,7 +31,7 @@ These components let you confirm or cancel and return the result to the conversa
 
 The root development command builds the IDI packages and watches their sources, so edits update the compiled workspace exports. Production builds also build package dependencies first.
 
-Development and production builds explicitly use Webpack. Visitor-cookie middleware retains the Edge runtime; Next.js's replacement `proxy` convention uses the Node.js runtime instead.
+Development and production builds explicitly use Webpack.
 
 Chat generation sends conversation and component data to AI Gateway and may incur model usage charges. Map views use Mapbox and its token. Use fictional data only.
 
@@ -39,25 +39,17 @@ Chat generation sends conversation and component data to AI Gateway and may incu
 
 Use the pin button beside a component's timestamp to save it in the left panel. Select a saved summary to reopen that component with its original inputs and any captured input changes. Different inputs can be saved as separate pins; pinning the same snapshot again moves it to the top.
 
-The hamburger button toggles the panel, which starts open on desktop and closed on mobile. Pinning a component successfully opens the panel automatically. Pins share the temporary visitor storage described below.
+The hamburger button toggles the panel, which starts open on desktop and closed on mobile. Pinning a component successfully opens the panel automatically. Pins, chat history, and shipment edits live only in the open page. Refreshing starts a new chat and restores the original shipments.
 
 ## How it fits together
 
 - `src/components/idi` registers the existing views with `defineIDIComponent`.
-- `src/app.tsx` connects `useIDI` to `/demo/api/idi`; history summaries can reopen the original invocation with its edited input state.
-- `src/app/api/idi/route.ts` passes requests and the demo visitor ID to `IDIAgent`. The framework validates and dispatches all wire operations, including `load-message-history` and `list-pinned-components`.
-- `src/server/idi/persistence.ts` supplies `saveMessages`, `loadMessages`, `loadPinnedComponents`, and `pinComponent`. Saves are awaited; no background scheduler or database is needed.
-- `src/domain/shipment.ts` owns the shipment domain locally; the framework has no shipment-specific contracts.
+- `src/app.tsx` uses the standard `useIDI` hook for chat and keeps pins in page state.
+- `src/app/api/idi/route.ts` delegates the standard IDI protocol to `IDIAgent`. Persistence requests are logged but store nothing; history and pin reads return empty lists. The route does not use cookies.
+- `src/domain/demo-shipments.tsx` keeps shipment edits in React state shared by the demo's views.
 
 See the [frontend API](../../packages/frontend/README.md) and [backend API](../../packages/backend/README.md) for lifecycle and wire contracts.
 
-## Temporary visitor data
-
-Middleware establishes an HTTP-only, same-site cookie before the page starts parallel history and pin requests. This is an anonymous demo partition, **not authentication**.
-
-Each visitor retains at most 500 messages and 50 pins. History loads in pages of 50 (server maximum 100). Stores retain up to 200 visitors and expire visitors after 24 hours of inactivity. Shipment edits apply only to that visitor's fixed seed records.
-
-All storage is process-local: data can disappear on eviction, server restart, or serverless instance changes. Different instances do not share data. This persistence is intentionally unsuitable for production accounts.
 
 ## Checks
 

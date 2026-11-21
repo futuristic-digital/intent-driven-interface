@@ -1,5 +1,10 @@
 import { App } from '../app';
+import { DemoShipmentsProvider } from '../domain/demo-shipments';
 
 export default function Page() {
-  return <App />;
+  return (
+    <DemoShipmentsProvider>
+      <App />
+    </DemoShipmentsProvider>
+  );
 }

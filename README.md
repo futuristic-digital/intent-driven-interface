@@ -42,7 +42,7 @@ Use Node.js 22.13+ and npm 11.11+.
 
 4. Open `http://localhost:3000/demo`.
 
-The demo posts to `/demo/api/idi`. Conversation and component data are sent to AI Gateway, which may incur model charges; maps use Mapbox. Use fictional data only. Visitor-scoped history, pins, and shipment edits are held in process memory and can disappear on restart or eviction. They are not shared between server instances.
+The demo posts to `/demo/api/idi`. Conversation and component data are sent to AI Gateway, which may incur model charges; maps use Mapbox. Use fictional data only. Chat history, pins, and shipment edits live only in the open page and reset when you refresh.
 
 ## Use in a host application
 

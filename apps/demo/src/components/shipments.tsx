@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import useSWR from 'swr';
-import { fetcher, shipmentsApiUrl } from '../utils/api';
+import { useDemoShipments } from '../domain/demo-shipments-context';
 import type { Shipment } from '../domain/shipment';
 import { Map, Marker } from './map';
 import { Check } from 'lucide-react';
@@ -16,17 +15,14 @@ export function Shipments({
   onSelect?: (shipment: Shipment) => void;
   selectedShipmentId?: string;
 }) {
-  const {
-    data: shipments,
-    error,
-    isLoading: isShipmentsLoading,
-  } = useSWR<Shipment[]>(`${shipmentsApiUrl}?state=${filter}`, fetcher, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: true,
-  });
+  const { shipments: allShipments } = useDemoShipments();
+  const shipments = useMemo(
+    () => allShipments.filter((shipment) => shipment.state.includes(filter)),
+    [allShipments, filter]
+  );
 
   const markers = useMemo<Marker[]>(() => {
-    if (displayType === 'list' || !shipments) return [];
+    if (displayType === 'list') return [];
 
     return shipments.map((shipment) => {
       const isDelivered = shipment.state.includes('delivered');
@@ -97,44 +93,21 @@ export function Shipments({
     });
   }, [displayType, shipments, onSelect, selectedShipmentId]);
 
-  const hasError = error !== undefined;
-
   if (displayType === 'map') {
     return (
       <div className="relative">
-        {hasError && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-muted/80 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-3">
-              <span className="text-sm font-medium text-destructive">
-                Failed to load shipments
-              </span>
-            </div>
-          </div>
-        )}
-
         <Map
           initial={{ position: [16.37, 48.21], zoom: 9 }} // Vienna, Austria
           markers={markers}
-          loading={isShipmentsLoading ? 'Loading shipments…' : undefined}
         />
       </div>
     );
   }
 
-  const isListLoading = isShipmentsLoading && !shipments;
-
   return (
     <div className="relative">
       <div className="overflow-hidden rounded-lg border bg-card">
-        {hasError ? (
-          <div className="p-4 text-sm font-medium text-destructive">
-            Failed to load shipments
-          </div>
-        ) : isListLoading ? (
-          <div className="p-4 text-sm text-muted-foreground">
-            Loading shipments…
-          </div>
-        ) : !shipments || shipments.length === 0 ? (
+        {shipments.length === 0 ? (
           <div className="p-4 text-sm text-muted-foreground">
             No shipments found.
           </div>

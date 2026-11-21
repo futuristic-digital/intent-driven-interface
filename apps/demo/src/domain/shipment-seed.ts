@@ -1,4 +1,4 @@
-import type { Shipment } from '../../../domain/shipment';
+import type { Shipment } from './shipment';
 
 export const SHIPMENTS: Omit<Shipment, 'createdAt' | 'updatedAt'>[] = [
   {

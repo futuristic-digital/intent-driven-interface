@@ -1,8 +1,10 @@
 import { defineIDIComponent, schema } from '@intent-driven-interface/frontend';
-import useSWR, { useSWRConfig } from 'swr';
-import { useEffect, useState } from 'react';
-import { fetcher, poster, shipmentsApiUrl } from '../../utils/api';
-import type { Shipment, ShipmentState } from '../../domain/shipment';
+import { useState } from 'react';
+import {
+  useDemoShipments,
+  type ShipmentEdit,
+} from '../../domain/demo-shipments-context';
+import type { ShipmentState } from '../../domain/shipment';
 
 const SHIPMENT_STATES: ShipmentState[] = ['inTransit', 'delayed', 'delivered'];
 
@@ -28,43 +30,36 @@ export const updateShipment = defineIDIComponent({
     return <span>Update shipment {componentInput.shipmentId}</span>;
   },
   component: function UpdateShipment({ componentInput: { shipmentId } }) {
-    const { mutate } = useSWRConfig();
-    const key = `${shipmentsApiUrl}/${shipmentId}`;
-    const { data: shipment, error, isLoading } = useSWR<Shipment>(key, fetcher);
-
-    const [state, setState] = useState<ShipmentState[]>([]);
-    const [carrier, setCarrier] = useState('');
-    const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState('');
-    const [delayReason, setDelayReason] = useState('');
-    const [lat, setLat] = useState('');
-    const [lng, setLng] = useState('');
-    const [submitting, setSubmitting] = useState(false);
+    const { shipments, updateShipment } = useDemoShipments();
+    const shipment = shipments.find(({ id }) => id === shipmentId);
+    const [state, setState] = useState(shipment?.state ?? []);
+    const [carrier, setCarrier] = useState(shipment?.carrier ?? '');
+    const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState(() =>
+      formatDateTimeLocal(shipment?.estimatedDeliveryDate ?? '')
+    );
+    const [delayReason, setDelayReason] = useState(shipment?.delayReason ?? '');
+    const [lat, setLat] = useState(
+      shipment?.actualPosition?.[0].toString() ?? ''
+    );
+    const [lng, setLng] = useState(
+      shipment?.actualPosition?.[1].toString() ?? ''
+    );
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [submitted, setSubmitted] = useState(false);
 
-    useEffect(() => {
-      if (!shipment) return;
-      setState(shipment.state ?? []);
-      setCarrier(shipment.carrier ?? '');
-      setEstimatedDeliveryDate(
-        formatDateTimeLocal(shipment.estimatedDeliveryDate)
+    if (!shipment) {
+      return (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          Failed to load shipment.
+        </div>
       );
-      setDelayReason(shipment.delayReason ?? '');
-      if (shipment.actualPosition) {
-        setLat(String(shipment.actualPosition[0]));
-        setLng(String(shipment.actualPosition[1]));
-      } else {
-        setLat('');
-        setLng('');
-      }
-    }, [shipment]);
+    }
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       setSubmitError(null);
-      setSubmitting(true);
 
-      const update: Partial<Shipment> = {};
+      const update: ShipmentEdit = {};
       if (state.length > 0) update.state = state;
       if (carrier.trim()) update.carrier = carrier.trim();
       if (estimatedDeliveryDate) {
@@ -75,32 +70,17 @@ export const updateShipment = defineIDIComponent({
       if (delayReason.trim()) update.delayReason = delayReason.trim();
       const latNum = parseFloat(lat);
       const lngNum = parseFloat(lng);
-      if (!Number.isNaN(latNum) && !Number.isNaN(lngNum)) {
+      if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
         update.actualPosition = [latNum, lngNum];
       }
 
       if (Object.keys(update).length === 0) {
         setSubmitError('Change at least one field to update.');
-        setSubmitting(false);
         return;
       }
 
-      try {
-        const updated = await poster<Shipment>(key, update);
-        await mutate(key, updated, { revalidate: false });
-        await mutate(
-          (k) =>
-            typeof k === 'string' &&
-            (k === shipmentsApiUrl || k.startsWith(`${shipmentsApiUrl}?`)),
-          undefined,
-          { revalidate: true }
-        );
-        setSubmitted(true);
-      } catch (err) {
-        setSubmitError(err instanceof Error ? err.message : 'Update failed');
-      } finally {
-        setSubmitting(false);
-      }
+      updateShipment(shipmentId, update);
+      setSubmitted(true);
     };
 
     const toggleState = (s: ShipmentState) => {
@@ -108,26 +88,6 @@ export const updateShipment = defineIDIComponent({
         prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
       );
     };
-
-    if (isLoading || !shipment) {
-      return (
-        <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
-          {isLoading
-            ? 'Loading shipment…'
-            : error
-              ? 'Failed to load shipment.'
-              : null}
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-          Failed to load shipment.
-        </div>
-      );
-    }
 
     return (
       <div className="rounded-lg border bg-card p-4">
@@ -233,10 +193,9 @@ export const updateShipment = defineIDIComponent({
 
             <button
               type="submit"
-              disabled={submitting}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
-              {submitting ? 'Saving…' : 'Save changes'}
+              Save changes
             </button>
           </form>
         )}

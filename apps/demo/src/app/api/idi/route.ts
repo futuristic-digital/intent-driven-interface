@@ -1,17 +1,8 @@
-import type { NextRequest } from 'next/server';
-import { getDemoVisitorId } from '../../../server/demo-visitor';
 import { idiAgent } from '../../../server/idi/agent';
 
-/** Delegate IDI operations and streaming to the framework using host-owned identity. */
-export async function POST(request: NextRequest) {
-  const visitorId = getDemoVisitorId(request);
-  if (!visitorId) {
-    return Response.json(
-      { error: 'Reload the page to initialize your session.' },
-      { status: 400 }
-    );
-  }
-
+/** Use the standard IDI protocol without a visitor session or storage. */
+export async function POST(request: Request) {
   const body: unknown = await request.json().catch(() => null);
-  return idiAgent.handleChatRequest(body, visitorId);
+
+  return idiAgent.handleChatRequest(body, 'anonymous-demo');
 }

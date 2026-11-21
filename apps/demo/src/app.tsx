@@ -9,10 +9,31 @@ import {
   useIDI,
   defineInitialMessages,
 } from '@intent-driven-interface/frontend';
+import type {
+  ComponentInputSnapshot,
+  PinnedIDIComponent,
+} from '@intent-driven-interface/backend/api-contracts';
+import { generateId } from 'ai';
 import { componentMap } from './components/idi/component-map';
 import { idiApiUrl } from './utils/api';
 
 const idiBackend = { url: idiApiUrl, requestHeaders: {} };
+
+function getPinKey(componentId: string, snapshot: ComponentInputSnapshot) {
+  return JSON.stringify(
+    [componentId, snapshot.componentInput, snapshot.componentInputState],
+    (_key, value: unknown) => {
+      if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+        return value;
+      }
+      return Object.fromEntries(
+        Object.entries(value).sort(([left], [right]) =>
+          left.localeCompare(right)
+        )
+      );
+    }
+  );
+}
 
 const initialMessages = defineInitialMessages([
   {
@@ -40,6 +61,9 @@ export function App() {
     getDesktopViewport,
     getServerViewport
   );
+  const [pinnedComponents, setPinnedComponents] = useState<
+    PinnedIDIComponent[]
+  >([]);
   const [isSidebarOpenOnDesktop, setIsSidebarOpenOnDesktop] = useState(true);
   const [isSidebarOpenOnMobile, setIsSidebarOpenOnMobile] = useState(false);
   const isSidebarOpen = isDesktop
@@ -61,9 +85,7 @@ export function App() {
     sendMessage,
     status,
     restoreComponent,
-    pinnedComponents,
-    pinComponent,
-    isLoadingPinnedComponents,
+
     isLoadingInitialMessages,
     hasOlderMessages,
     isLoadingOlderMessages,
@@ -74,12 +96,23 @@ export function App() {
     initialMessages,
   });
 
-  /** Reveal saved pins only after persistence succeeds, using the current viewport. */
-  const handlePinComponent: typeof pinComponent = async (
-    componentId,
-    snapshot
+  /** Reveal the new pin using the current viewport. */
+  const handlePinComponent = async (
+    componentId: string,
+    snapshot: ComponentInputSnapshot
   ) => {
-    await pinComponent(componentId, snapshot);
+    const inputSnapshot = structuredClone(snapshot);
+    const key = getPinKey(componentId, inputSnapshot);
+    const id = generateId();
+    setPinnedComponents((current) => {
+      const existing = current.find(
+        (pin) => getPinKey(pin.componentId, pin) === key
+      );
+      return [
+        { ...inputSnapshot, id: existing?.id ?? id, componentId },
+        ...current.filter((pin) => pin !== existing),
+      ];
+    });
     if (getDesktopViewport()) {
       setIsSidebarOpenOnDesktop(true);
     } else {
@@ -134,7 +167,7 @@ export function App() {
           <PinnedComponentsPanel
             pinnedComponents={pinnedComponents}
             restoreComponent={restoreComponent}
-            isLoading={isLoadingPinnedComponents}
+            isLoading={false}
             disabled={isLoadingInitialMessages || agentAnswerInProgress}
             isOpen={isSidebarOpen}
             isOpenOnDesktop={isSidebarOpenOnDesktop}
