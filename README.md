@@ -14,8 +14,8 @@ IDI owns no database, authentication, or domain components. Hosts supply `saveMe
 ## Run the landing page
 
 From the repository root, run `npm ci` and `npm run dev:landing`, then open
-`http://localhost:3001`. The landing page uses a local sample delivery with no
-API keys or external requests for the interactive example.
+`http://localhost:3001`. The landing page shows a sample field-service workspace with a scripted
+walkthrough. It uses no API keys or external requests.
 
 ## Run the demo
 

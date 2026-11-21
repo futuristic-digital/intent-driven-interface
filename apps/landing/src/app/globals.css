@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ink: #28251f;
+  --color-paper: #fcf9f2;
+  --color-sunflower: #f2b705;
+  --color-muted: #605d55;
+  --color-rule: #c8c4b9;
+  --color-dark-rule: #605d52;
+  --color-paper-muted: #cecabe;
+  --font-sans: 'Helvetica Neue', Arial, sans-serif;
+  --font-display: Baskerville, 'Baskerville Old Face', 'Times New Roman', serif;
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --container-spread: 86rem;
+  --text-headline: clamp(2.75rem, 5.9vw, 5.25rem);
+  --text-mobile-headline: clamp(2.45rem, 13vw, 4.75rem);
+  --text-section: clamp(3.2rem, 5vw, 5rem);
+  --tracking-display: -0.055em;
+  --tracking-label: 0.13em;
+  --shadow-poster-edge: 0 4px 0 #f2b705;
+  --shadow-code-edge: 0 4px 0 #28251f;
+  --shadow-print: 5px 5px 0 #28251f;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+::selection {
+  background: var(--color-sunflower);
+  color: var(--color-ink);
+}
+:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 4px;
+}
+button,
+summary {
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+  }
+}
