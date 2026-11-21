@@ -13,17 +13,13 @@ Say what you want to do. No more digging through menus or figuring out which scr
 
 ### Delivery example
 
-**Your delivery** · Sample delivery
+**User** — I’m waiting on a desk and a chair. When are they coming?
 
-Expected tomorrow morning
+**Agent** — Here are your **ongoing deliveries**. You can see when each one is due.
 
-> I won’t be home in the morning. What other delivery times are there?
+**User** — I see the desk is due tomorrow morning. I’ll be at work then. Can I pick a later time?
 
-Clicking the request opens **Choose a delivery time for tomorrow** with three options: **12–2 PM**, **2–4 PM**, and **4–6 PM**.
-
-**Confirm time** becomes available after the visitor selects a time. The confirmation reads “You chose {time} for tomorrow.” **Edit** reopens the picker with the selected time in place.
-
-Your choice stays on this device.
+**Agent** — I’ve opened the **time picker** for your desk delivery. Choose a time that works for you and confirm it.
 
 ## Intent-Driven Interface
 
