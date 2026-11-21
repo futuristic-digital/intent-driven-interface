@@ -1,6 +1,10 @@
 # Intent Driven Interface
 
-IDI lets an AI model open interactive React components instead of executing server-side tools. Users make choices in the UI, and those results drive the next conversation turn.
+Intent-Driven Interface (IDI) connects what people ask for in natural language to interactive React components in your app. If someone asks to see next week’s bookings, the AI can open your calendar to that week. The user sees their options and decides what happens next. The app can pass the result back to the AI to continue the conversation.
+
+Users can reopen views from their conversation history or pin frequently used views with their settings. Your app provides the components and controls what data it shares with the model.
+
+[Visit the project homepage](https://www.intent-driven-interface.dev/).
 
 ## Packages
 
@@ -77,14 +81,6 @@ npm run build:demo
 ```
 
 Package builds write JavaScript and declarations to each package's `dist/` directory. The frontend and backend `prepack` hooks build the packages and their workspace dependencies before packaging. Published packages include the MIT license.
-
-## Deploy to Vercel
-
-The root `vercel.json` uses [Vercel Services](https://vercel.com/docs/services) to deploy the landing page at `/` and the demo at `/demo` in one project.
-
-1. Import the repository into Vercel and leave **Root Directory** at the repository root.
-2. Set `AI_GATEWAY_API_KEY` and `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` in the project's environment variables for Production and any Preview deployments that need the demo.
-3. Deploy the project.
 
 ## License
 
