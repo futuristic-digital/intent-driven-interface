@@ -76,7 +76,7 @@ npm run type-check
 npm run build:demo
 ```
 
-Package builds write JavaScript and declarations to each package's `dist/` directory. `npm pack` and `npm publish` run the package's `prepack` hook, which builds it and its workspace dependencies before packaging. Only `dist/`, agent guidance, the README, and package metadata are published.
+Package builds write JavaScript and declarations to each package's `dist/` directory. The frontend and backend `prepack` hooks build the packages and their workspace dependencies before packaging. Published packages include the MIT license.
 
 ## Deploy to Vercel
 
@@ -85,3 +85,7 @@ The root `vercel.json` uses [Vercel Services](https://vercel.com/docs/services) 
 1. Import the repository into Vercel and leave **Root Directory** at the repository root.
 2. Set `AI_GATEWAY_API_KEY` and `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` in the project's environment variables for Production and any Preview deployments that need the demo.
 3. Deploy the project.
+
+## License
+
+[MIT](LICENSE)

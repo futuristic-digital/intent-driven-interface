@@ -1,6 +1,7 @@
 {
   "name": "@intent-driven-interface/backend",
   "version": "0.1.1",
+  "license": "MIT",
   "type": "module",
   "publishConfig": {
     "access": "public"
