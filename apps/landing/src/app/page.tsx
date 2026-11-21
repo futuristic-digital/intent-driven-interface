@@ -133,7 +133,7 @@ function Hero() {
           </a>
         </div>
       </div>
-      <div className="relative border border-ink p-1.5 max-md:order-2 max-md:mt-6 max-md:-mr-5 max-md:border-r-0 max-md:bg-paper max-md:pr-0 max-md:shadow-poster-edge max-md:sm:-mr-10 md:mx-1">
+      <div className="border border-ink p-1.5 max-md:order-2 max-md:mt-6 max-md:-mr-5 max-md:border-r-0 max-md:bg-paper max-md:pr-0 max-md:shadow-poster-edge max-md:sm:-mr-10 md:mx-1">
         <Image
           src="/human-control-dial.webp"
           alt="A human hand turns a black control dial against a rising sunflower-yellow sun."
@@ -143,18 +143,6 @@ function Hero() {
           unoptimized
           className="aspect-4/3 w-full object-cover md:aspect-square xl:aspect-6/5"
         />
-        {[
-          '-top-2 -left-2',
-          '-top-2 -right-2',
-          '-bottom-2 -left-2',
-          '-bottom-2 -right-2',
-        ].map((position) => (
-          <span
-            key={position}
-            aria-hidden="true"
-            className={`absolute ${position} hidden size-3 md:flex items-center justify-center before:absolute before:h-px before:w-3 before:bg-muted after:h-3 after:w-px after:bg-muted`}
-          />
-        ))}
       </div>
     </section>
   );

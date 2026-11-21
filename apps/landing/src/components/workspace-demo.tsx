@@ -15,17 +15,19 @@ const campaignRequest =
   'Help me plan reminders for customers due for maintenance.';
 const bookingTitle = 'Bookings';
 const bookingWeek = 'Week of Nov 23';
+const campaignTitle = 'Maintenance campaign';
 const stages = {
   bookingMessage: 0,
   calendar: 1,
-  pressingPin: 2,
-  pinned: 3,
-  campaignMessage: 4,
-  collapsingCalendar: 5,
-  campaign: 6,
+  campaignMessage: 2,
+  collapsingCalendar: 3,
+  campaign: 4,
+  pressingPin: 5,
+  pinned: 6,
+  complete: 7,
 };
 const characterDelay = 29;
-const calendarReadingTime = 1200;
+const componentReadingTime = 1200;
 const pinFlightDuration = 540;
 const calendarCollapseDuration = 500;
 
@@ -37,19 +39,28 @@ const calendarDays = [
   { day: 'Fri', date: 27, time: '9:30 AM', job: 'Boiler service' },
 ];
 
-function BookingsSummary() {
+function BookingsSummary({ expanded = true }: { expanded?: boolean }) {
   return (
-    <div className="min-w-0 rounded border border-rule bg-paper px-3 py-2">
-      <p className="text-sm font-semibold">{bookingTitle}</p>
-      <p className="mt-0.5 text-xs text-muted">{bookingWeek}</p>
+    <div
+      inert={!expanded}
+      className={`grid max-w-56 rounded bg-paper ring-1 ring-rule ring-inset transition-[grid-template-rows,opacity] ease-out motion-reduce:transition-none ${expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+      style={{ transitionDuration: `${calendarCollapseDuration}ms` }}
+    >
+      {/* Keep the outline on the resizing card so only its contents are clipped. */}
+      <div className="min-h-0 overflow-hidden">
+        <div className="border border-transparent px-3 py-2">
+          <p className="text-sm font-semibold">{bookingTitle}</p>
+          <p className="mt-0.5 text-xs text-muted">{bookingWeek}</p>
+        </div>
+      </div>
     </div>
   );
 }
 
-function BookingsCalendar({ titleRef }: { titleRef?: Ref<HTMLDivElement> }) {
+function BookingsCalendar() {
   return (
     <div className="rounded-lg border border-rule bg-paper">
-      <div ref={titleRef} className="border-b border-rule p-4 sm:p-5">
+      <div className="border-b border-rule p-4 sm:p-5">
         <h3 className="text-xl font-semibold">{bookingTitle}</h3>
         <p className="mt-1 text-sm text-muted">{bookingWeek}</p>
       </div>
@@ -75,11 +86,19 @@ function BookingsCalendar({ titleRef }: { titleRef?: Ref<HTMLDivElement> }) {
   );
 }
 
-function CampaignPlanner() {
+function CampaignSummary() {
+  return (
+    <div className="rounded border border-rule bg-paper px-3 py-2 text-sm font-semibold">
+      {campaignTitle}
+    </div>
+  );
+}
+
+function CampaignPlanner({ titleRef }: { titleRef?: Ref<HTMLDivElement> }) {
   return (
     <div className="rounded-lg border border-rule bg-paper">
-      <div className="border-b border-rule p-4 sm:p-5">
-        <h3 className="text-xl font-semibold">Maintenance campaign</h3>
+      <div ref={titleRef} className="border-b border-rule p-4 sm:p-5">
+        <h3 className="text-xl font-semibold">{campaignTitle}</h3>
       </div>
       <div className="p-4 text-sm sm:p-5">
         <dl className="grid gap-3 min-[360px]:grid-cols-2">
@@ -153,14 +172,14 @@ function WorkspaceDemoSize() {
         </div>
         {/* Allow space for the taller of the expanded and compact layouts. */}
         <div className="grid">
-          <div className="col-start-1 row-start-1 pt-10">
+          <div className="col-start-1 row-start-1">
             <BookingsCalendar />
           </div>
           <div className="col-start-1 row-start-1 space-y-5">
-            <div className="max-w-56">
-              <BookingsSummary />
+            <BookingsSummary />
+            <div className="pt-10">
+              <CampaignPlanner />
             </div>
-            <CampaignPlanner />
           </div>
         </div>
         <div>
@@ -173,7 +192,7 @@ function WorkspaceDemoSize() {
 
 export function WorkspaceDemo() {
   const frame = useRef<HTMLDivElement>(null);
-  const calendarTitle = useRef<HTMLDivElement>(null);
+  const campaignHeader = useRef<HTMLDivElement>(null);
   const pinnedCard = useRef<HTMLDivElement>(null);
   const flyingCard = useRef<HTMLDivElement>(null);
   const pinOrigin = useRef<DOMRect | null>(null);
@@ -185,7 +204,8 @@ export function WorkspaceDemo() {
   const pinned = step >= stages.pinned;
   const showMobileSidebar = step === stages.pinned;
   const compactCalendar = step >= stages.collapsingCalendar;
-  const showCampaign = step === stages.campaign;
+  const showCampaign = step >= stages.campaign;
+  const complete = step === stages.complete;
   const writing =
     step === stages.bookingMessage
       ? bookingRequest
@@ -195,7 +215,7 @@ export function WorkspaceDemo() {
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setStep(stages.campaign);
+      setStep(stages.complete);
       return;
     }
 
@@ -211,25 +231,25 @@ export function WorkspaceDemo() {
     return () => observer.disconnect();
   }, []);
 
-  const pinBookings = useCallback(() => {
-    if (step !== stages.calendar) return;
-    pinOrigin.current = calendarTitle.current?.getBoundingClientRect() ?? null;
+  const pinCampaign = useCallback(() => {
+    if (step !== stages.campaign) return;
+    pinOrigin.current = campaignHeader.current?.getBoundingClientRect() ?? null;
     setStep((current) =>
-      current === stages.calendar ? stages.pressingPin : current
+      current === stages.campaign ? stages.pressingPin : current
     );
   }, [step]);
 
   useEffect(() => {
     if (!started) return;
-    if (showCampaign) {
+    if (complete) {
       const timer = window.setTimeout(
         () => setStep(stages.bookingMessage),
         6500
       );
       return () => window.clearTimeout(timer);
     }
-    if (step === stages.calendar) {
-      const timer = window.setTimeout(pinBookings, calendarReadingTime);
+    if (step === stages.campaign) {
+      const timer = window.setTimeout(pinCampaign, componentReadingTime);
       return () => window.clearTimeout(timer);
     }
 
@@ -248,12 +268,14 @@ export function WorkspaceDemo() {
         : step === stages.pinned
           ? pinFlightDuration +
             (window.matchMedia('(width < 48rem)').matches ? 650 : 0)
-          : step === stages.collapsingCalendar
-            ? calendarCollapseDuration
-            : 240
+          : step === stages.calendar
+            ? componentReadingTime
+            : step === stages.collapsingCalendar
+              ? calendarCollapseDuration
+              : 240
     );
     return () => window.clearTimeout(timer);
-  }, [pinBookings, showCampaign, started, step, characters, writing]);
+  }, [pinCampaign, complete, started, step, characters, writing]);
 
   useLayoutEffect(() => {
     if (
@@ -321,7 +343,7 @@ export function WorkspaceDemo() {
           >
             <div className="min-w-0 px-4 py-3 md:w-44">
               <div ref={pinnedCard} className="w-36 max-w-full">
-                <BookingsSummary />
+                <CampaignSummary />
               </div>
             </div>
           </aside>
@@ -345,30 +367,10 @@ export function WorkspaceDemo() {
                   }}
                 >
                   <div className="min-h-0 overflow-hidden">
-                    <div className="mb-2 flex">
-                      <button
-                        type="button"
-                        aria-disabled={pinned || pressingPin}
-                        onClick={pinBookings}
-                        className={`min-h-8 rounded px-2.5 text-sm font-medium transition-[scale,background-color,box-shadow] duration-150 motion-reduce:transition-none ${pressingPin ? 'scale-90 bg-sunflower ring-4 ring-sunflower/35' : pinned ? 'text-muted' : 'underline decoration-rule underline-offset-4 hover:decoration-ink'}`}
-                      >
-                        {pinned ? 'Pinned' : 'Pin'}
-                      </button>
-                    </div>
-                    <BookingsCalendar titleRef={calendarTitle} />
+                    <BookingsCalendar />
                   </div>
                 </div>
-                <div
-                  inert={!compactCalendar}
-                  className={`grid transition-[grid-template-rows,opacity] ease-out motion-reduce:transition-none ${compactCalendar ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
-                  style={{
-                    transitionDuration: `${calendarCollapseDuration}ms`,
-                  }}
-                >
-                  <div className="min-h-0 max-w-56 overflow-hidden">
-                    <BookingsSummary />
-                  </div>
-                </div>
+                <BookingsSummary expanded={compactCalendar} />
               </li>
             )}
             {step >= stages.campaignMessage && (
@@ -383,7 +385,17 @@ export function WorkspaceDemo() {
             )}
             {showCampaign && (
               <li>
-                <CampaignPlanner />
+                <div className="mb-2 flex">
+                  <button
+                    type="button"
+                    aria-disabled={pinned || pressingPin}
+                    onClick={pinCampaign}
+                    className={`min-h-8 rounded px-2.5 text-sm font-medium transition-[scale,background-color,box-shadow] duration-150 motion-reduce:transition-none ${pressingPin ? 'scale-90 bg-sunflower ring-4 ring-sunflower/35' : pinned ? 'text-muted' : 'underline decoration-rule underline-offset-4 hover:decoration-ink'}`}
+                  >
+                    {pinned ? 'Pinned' : 'Pin'}
+                  </button>
+                </div>
+                <CampaignPlanner titleRef={campaignHeader} />
               </li>
             )}
           </ol>
@@ -393,10 +405,10 @@ export function WorkspaceDemo() {
           aria-hidden="true"
           className="pointer-events-none absolute top-0 left-0 z-40 w-36 origin-top-left opacity-0"
         >
-          <BookingsSummary />
+          <CampaignSummary />
         </div>
       </div>
-      {showCampaign && (
+      {complete && (
         <div className="relative mx-auto max-w-3xl">
           <button
             type="button"
