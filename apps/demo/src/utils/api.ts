@@ -1,4 +1,9 @@
-/** GET an app-relative API URL; SWR keys already include /api. */
+const demoApiPath = `${process.env.NEXT_PUBLIC_DEMO_BASE_PATH}/api`;
+
+export const idiApiUrl = `${demoApiPath}/idi`;
+export const shipmentsApiUrl = `${demoApiPath}/shipments`;
+
+/** GET an API URL that includes the demo's base path. */
 export const fetcher = async <T = unknown>(url: string): Promise<T> => {
   const response = await fetch(url);
   if (!response.ok) {

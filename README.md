@@ -40,9 +40,9 @@ Use Node.js 22.13+ and npm 11.11+.
    npm run dev:demo
    ```
 
-4. Open the URL printed by Next.js, normally `http://localhost:3000`.
+4. Open `http://localhost:3000/demo`.
 
-The demo posts to `/api/idi`. Conversation and component data are sent to AI Gateway, which may incur model charges; maps use Mapbox. Use fictional data only. Visitor-scoped history, pins, and shipment edits are held in process memory and can disappear on restart or eviction. They are not shared between server instances.
+The demo posts to `/demo/api/idi`. Conversation and component data are sent to AI Gateway, which may incur model charges; maps use Mapbox. Use fictional data only. Visitor-scoped history, pins, and shipment edits are held in process memory and can disappear on restart or eviction. They are not shared between server instances.
 
 ## Use in a host application
 
@@ -78,4 +78,10 @@ npm run build:demo
 
 Package builds write JavaScript and declarations to each package's `dist/` directory. `npm pack` and `npm publish` run the package's `prepack` hook, which builds it and its workspace dependencies before packaging. Only `dist/`, agent guidance, the README, and package metadata are published.
 
-For Vercel, set the project root to `apps/demo` and configure the same environment variables. Its `vercel.json` builds the app and workspace dependencies.
+## Deploy to Vercel
+
+The root `vercel.json` uses [Vercel Services](https://vercel.com/docs/services) to deploy the landing page at `/` and the demo at `/demo` in one project.
+
+1. Import the repository into Vercel and leave **Root Directory** at the repository root.
+2. Set `AI_GATEWAY_API_KEY` and `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` in the project's environment variables for Production and any Preview deployments that need the demo.
+3. Deploy the project.

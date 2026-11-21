@@ -27,7 +27,7 @@ These components let you confirm or cancel and return the result to the conversa
    npm run dev:demo
    ```
 
-4. Open the URL printed by Next.js, normally `http://localhost:3000`.
+4. Open `http://localhost:3000/demo`.
 
 The root development command builds the IDI packages and watches their sources, so edits update the compiled workspace exports. Production builds also build package dependencies first.
 
@@ -44,7 +44,7 @@ The hamburger button toggles the panel, which starts open on desktop and closed 
 ## How it fits together
 
 - `src/components/idi` registers the existing views with `defineIDIComponent`.
-- `src/app.tsx` connects `useIDI` to `/api/idi`; history summaries can reopen the original invocation with its edited input state.
+- `src/app.tsx` connects `useIDI` to `/demo/api/idi`; history summaries can reopen the original invocation with its edited input state.
 - `src/app/api/idi/route.ts` passes requests and the demo visitor ID to `IDIAgent`. The framework validates and dispatches all wire operations, including `load-message-history` and `list-pinned-components`.
 - `src/server/idi/persistence.ts` supplies `saveMessages`, `loadMessages`, `loadPinnedComponents`, and `pinComponent`. Saves are awaited; no background scheduler or database is needed.
 - `src/domain/shipment.ts` owns the shipment domain locally; the framework has no shipment-specific contracts.

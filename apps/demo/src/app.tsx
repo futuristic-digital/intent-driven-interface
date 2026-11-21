@@ -10,8 +10,9 @@ import {
   defineInitialMessages,
 } from '@intent-driven-interface/frontend';
 import { componentMap } from './components/idi/component-map';
+import { idiApiUrl } from './utils/api';
 
-const idiBackend = { url: '/api/idi', requestHeaders: {} };
+const idiBackend = { url: idiApiUrl, requestHeaders: {} };
 
 const initialMessages = defineInitialMessages([
   {

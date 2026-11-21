@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import useSWR from 'swr';
-import { fetcher } from '../utils/api';
+import { fetcher, shipmentsApiUrl } from '../utils/api';
 import type { Shipment } from '../domain/shipment';
 import { Map, Marker } from './map';
 import { Check } from 'lucide-react';
@@ -20,7 +20,7 @@ export function Shipments({
     data: shipments,
     error,
     isLoading: isShipmentsLoading,
-  } = useSWR<Shipment[]>(`/api/shipments?state=${filter}`, fetcher, {
+  } = useSWR<Shipment[]>(`${shipmentsApiUrl}?state=${filter}`, fetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: true,
   });

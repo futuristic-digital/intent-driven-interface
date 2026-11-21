@@ -1,7 +1,7 @@
 import { defineIDIComponent, schema } from '@intent-driven-interface/frontend';
 import useSWR, { useSWRConfig } from 'swr';
 import { useEffect, useState } from 'react';
-import { fetcher, poster } from '../../utils/api';
+import { fetcher, poster, shipmentsApiUrl } from '../../utils/api';
 import type { Shipment, ShipmentState } from '../../domain/shipment';
 
 const SHIPMENT_STATES: ShipmentState[] = ['inTransit', 'delayed', 'delivered'];
@@ -29,7 +29,7 @@ export const updateShipment = defineIDIComponent({
   },
   component: function UpdateShipment({ componentInput: { shipmentId } }) {
     const { mutate } = useSWRConfig();
-    const key = `/api/shipments/${shipmentId}`;
+    const key = `${shipmentsApiUrl}/${shipmentId}`;
     const { data: shipment, error, isLoading } = useSWR<Shipment>(key, fetcher);
 
     const [state, setState] = useState<ShipmentState[]>([]);
@@ -86,15 +86,12 @@ export const updateShipment = defineIDIComponent({
       }
 
       try {
-        const updated = await poster<Shipment>(
-          `/api/shipments/${shipmentId}`,
-          update
-        );
+        const updated = await poster<Shipment>(key, update);
         await mutate(key, updated, { revalidate: false });
         await mutate(
           (k) =>
             typeof k === 'string' &&
-            (k === '/api/shipments' || k.startsWith('/api/shipments?')),
+            (k === shipmentsApiUrl || k.startsWith(`${shipmentsApiUrl}?`)),
           undefined,
           { revalidate: true }
         );
