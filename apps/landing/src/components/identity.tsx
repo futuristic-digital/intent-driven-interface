@@ -15,7 +15,7 @@ export function SunMark({ className = '' }: { className?: string }) {
         {Array.from({ length: 16 }, (_, ray) => (
           <path
             key={ray}
-            d="M21.9 1h4.2l-.8 15h-2.6z"
+            d="M24 1l2 15h-4z"
             transform={`rotate(${ray * 22.5} 24 24)`}
           />
         ))}

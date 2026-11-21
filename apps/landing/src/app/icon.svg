@@ -1,1 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="8" fill="#28251f"/><g stroke="#f2b705" stroke-width="3"><circle cx="24" cy="24" r="13" fill="none" stroke-width="11" stroke-dasharray="3 3.8"/><circle cx="24" cy="24" r="7" fill="#f2b705"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <g fill="#f2b705">
+    <g id="quarter-sun">
+      <path id="ray" d="M24 4l2 12h-4z"/>
+      <use href="#ray" transform="rotate(22.5 24 24)"/>
+      <use href="#ray" transform="rotate(45 24 24)"/>
+      <use href="#ray" transform="rotate(67.5 24 24)"/>
+    </g>
+    <use href="#quarter-sun" transform="rotate(90 24 24)"/>
+    <use href="#quarter-sun" transform="rotate(180 24 24)"/>
+    <use href="#quarter-sun" transform="rotate(270 24 24)"/>
+    <circle cx="24" cy="24" r="8.5"/>
+  </g>
+</svg>
