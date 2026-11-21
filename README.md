@@ -11,6 +11,12 @@ IDI lets an AI model open interactive React components instead of executing serv
 
 IDI owns no database, authentication, or domain components. Hosts supply `saveMessages`, `loadMessages`, `loadPinnedComponents`, and `pinComponent`, plus an optional background-task scheduler. There is no component schema versioning or migration layer; hosts own compatibility with their stored data.
 
+## Run the landing page
+
+From the repository root, run `npm ci` and `npm run dev:landing`, then open
+`http://localhost:3001`. The landing page uses a local sample delivery with no
+API keys or external requests for the interactive example.
+
 ## Run the demo
 
 Use Node.js 22.13+ and npm 11.11+.

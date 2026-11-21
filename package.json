@@ -8,6 +8,8 @@
     "packages/*"
   ],
   "scripts": {
+    "dev:landing": "npm run dev --workspace=landing",
+    "build:landing": "npm run build --workspace=landing",
     "dev:demo": "turbo run dev --filter=demo...",
     "build:demo": "turbo run build --filter=demo",
     "build:packages": "turbo run build --filter='./packages/*'",
