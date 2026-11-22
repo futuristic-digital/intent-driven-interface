@@ -249,11 +249,9 @@ export function WorkspaceDemo() {
       const timer = window.setTimeout(replay, 6500);
       return () => window.clearTimeout(timer);
     }
-    if (step === stages.campaign) {
-      const timer = window.setTimeout(() => {
-        pinBookings();
-        setStep(stages.complete);
-      }, componentReadingTime);
+    if (step === stages.calendar && pinPhase !== 'settled') {
+      if (pinPhase !== 'idle') return;
+      const timer = window.setTimeout(pinBookings, componentReadingTime);
       return () => window.clearTimeout(timer);
     }
 
@@ -269,14 +267,23 @@ export function WorkspaceDemo() {
       },
       writingInProgress
         ? characterDelay
-        : step === stages.calendar
+        : step === stages.campaign
           ? componentReadingTime
           : step === stages.collapsingCalendar
             ? calendarCollapseDuration
             : 240
     );
     return () => window.clearTimeout(timer);
-  }, [pinBookings, replay, complete, started, step, characters, writing]);
+  }, [
+    pinBookings,
+    pinPhase,
+    replay,
+    complete,
+    started,
+    step,
+    characters,
+    writing,
+  ]);
 
   useEffect(() => {
     if (pinPhase === 'pressing') {
