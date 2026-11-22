@@ -13,7 +13,7 @@ const principles = [
     name: 'Control',
     title: 'You get the final say.',
     detail:
-      'AI opens the campaign planner. You decide who to contact and when.',
+      'Your settings are clear, so you know exactly what you’re committing to.',
   },
   {
     name: 'Privacy',
@@ -25,7 +25,7 @@ const principles = [
     name: 'Offline mode',
     title: 'Nothing leaves your device.',
     detail:
-      'In offline mode, everything runs on your device without connecting to the internet.',
+      'In offline mode, everything runs quickly on your device without connecting to the internet.',
     featured: true,
   },
   {
@@ -38,7 +38,7 @@ const principles = [
     name: 'History',
     title: 'Go back without asking again.',
     detail:
-      'Reopen a view from last week, even if you’ve forgotten the words you used.',
+      'Reopen last week’s view, even if you don’t remember how you got there.'
   },
 ];
 
