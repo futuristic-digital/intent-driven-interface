@@ -13,32 +13,32 @@ const principles = [
     name: 'Control',
     title: 'You get the final say.',
     detail:
-      'Your settings are clear, so you know exactly what you’re committing to.',
+      'You know exactly what each action will do, and it only happens when you select it.',
   },
   {
     name: 'Privacy',
     title: 'Keep the details private.',
     detail:
-      'AI can open the bookings calendar without reading your customers’ details.',
+      'AI can open your customer list without reading your customers’ details.',
   },
   {
     name: 'Offline mode',
     title: 'Nothing leaves your device.',
     detail:
-      'In offline mode, everything runs quickly on your device without connecting to the internet.',
+      'In offline mode, everything runs on your device without connecting to the internet.',
     featured: true,
   },
   {
     name: 'Personalization',
     title: 'Put your favorites within reach.',
     detail:
-      'Pin the bookings calendar in Week view. Reopen it from the sidebar with Week view still selected.',
+      'Pin the calendar in Week view. Reopen it from the sidebar with Week view still selected.',
   },
   {
     name: 'History',
     title: 'Go back without asking again.',
     detail:
-      'Reopen last week’s view, even if you don’t remember how you got there.'
+      'Reopen a view you’ve used before, even if you don’t remember how you got there.'
   },
 ];
 
