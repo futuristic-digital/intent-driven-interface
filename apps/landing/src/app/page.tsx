@@ -96,8 +96,9 @@ function Hero() {
           </em>
         </h1>
         <p className="mt-6 max-w-md text-lg leading-relaxed text-muted max-md:order-3 md:mt-7 lg:text-xl">
-          Tell the app what you want to do. AI brings the right controls into
-          view. You see your options and decide what happens next.
+          Tell the app what you want to do, and the AI shows you the controls
+          you need. You stay in charge and can see what each action will do
+          before you take it.
         </p>
         <div className="mt-6 grid grid-cols-2 items-center gap-2 max-md:order-4 md:mt-8 md:flex md:flex-wrap md:gap-x-6 md:gap-y-4">
           <a
