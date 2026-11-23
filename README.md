@@ -15,6 +15,8 @@ Users can reopen views from their conversation history or pin frequently used vi
 
 IDI owns no database, authentication, or domain components. Hosts supply `saveMessages`, `loadMessages`, `loadPinnedComponents`, and `pinComponent`, plus an optional background-task scheduler. There is no component schema versioning or migration layer; hosts own compatibility with their stored data.
 
+[See the framework roadmap](ROADMAP.md).
+
 ## Run the landing page
 
 From the repository root, run `npm ci` and `npm run dev:landing`, then open
