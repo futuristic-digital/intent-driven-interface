@@ -2,7 +2,6 @@ import Image from 'next/image';
 import { WorkspaceDemo } from '../components/workspace-demo';
 import {
   Brand,
-  docsUrl,
   GitHubMark,
   sections,
   sourceUrl,
@@ -53,6 +52,35 @@ const labelStyle =
 const actionStyle =
   'inline-flex min-h-12 items-center justify-center gap-2.5 px-6 text-base font-medium transition-colors';
 
+function DocsLink({ className }: { className: string }) {
+  return (
+    <a href={sourceUrl} className={className}>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        aria-hidden="true"
+        className="size-5 shrink-0"
+      >
+        <g transform="translate(0.25 0.25)" strokeLinecap="square">
+          <line x1="12" y1="4" x2="12" y2="21" strokeLinecap="butt" />
+          <path d="M17.5,2c-3,0-5.5,1.3-5.5,3 c0-1.7-2.5-3-5.5-3S1,3.3,1,5v17c0-1.7,2.5-3,5.5-3s5.5,1.3,5.5,3c0-1.7,2.5-3,5.5-3s5.5,1.3,5.5,3V5C23,3.3,20.5,2,17.5,2z" />
+        </g>
+      </svg>
+      Get started
+    </a>
+  );
+}
+
+function SourceLink({ className }: { className: string }) {
+  return (
+    <a href={sourceUrl} className={className}>
+      <GitHubMark />
+      View source
+    </a>
+  );
+}
+
 function Header() {
   return (
     <header className="border-b border-rule">
@@ -74,12 +102,7 @@ function Header() {
             </a>
           ))}
         </nav>
-        <a
-          href={sourceUrl}
-          className="inline-flex min-h-11 items-center gap-2 border border-ink px-3.5 py-2 sm:min-h-0 text-sm font-medium transition-colors hover:bg-ink hover:text-paper lg:ml-5"
-        >
-          <GitHubMark /> GitHub
-        </a>
+        <SourceLink className="inline-flex min-h-11 items-center gap-2 border border-ink px-3.5 py-2 text-sm font-medium transition-colors hover:bg-ink hover:text-paper sm:min-h-0 lg:ml-5" />
       </div>
     </header>
   );
@@ -106,32 +129,21 @@ function Hero() {
             className={`${actionStyle} bg-ink text-paper hover:bg-muted max-md:min-h-13 max-md:gap-2 max-md:px-2 max-md:text-sm`}
           >
             <svg
-              viewBox="0 0 16 16"
-              fill="currentColor"
-              aria-hidden="true"
-              className="size-3.5 text-sunflower"
-            >
-              <path d="M3 1.5 14 8 3 14.5z" />
-            </svg>
-            See the demo
-          </a>
-          <a
-            href={docsUrl}
-            className="inline-flex min-h-12 items-center gap-2 font-medium underline decoration-rule underline-offset-5 hover:decoration-ink max-md:min-h-13 max-md:justify-center max-md:border max-md:border-ink max-md:px-2 max-md:text-sm max-md:no-underline"
-          >
-            <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinejoin="round"
               aria-hidden="true"
-              className="size-4"
+              className="size-5 shrink-0 text-sunflower"
             >
-              <path d="M12 6c-2-2-7-3-10-2v15c4-1 7 0 10 2 3-2 6-3 10-2V4c-3-1-8 0-10 2zm0 0v15" />
+              <polygon
+                points="7 21 7 3 19 12 7 21"
+                transform="translate(0.25 0.25)"
+                strokeLinecap="square"
+              />
             </svg>
-            Read the docs
+            See the demo
           </a>
+          <DocsLink className="inline-flex min-h-12 items-center gap-2 font-medium underline decoration-rule underline-offset-5 hover:decoration-ink max-md:min-h-13 max-md:justify-center max-md:border max-md:border-ink max-md:px-2 max-md:text-sm max-md:no-underline" />
         </div>
       </div>
       <div className="border border-ink p-1.5 max-md:order-2 max-md:mt-6 max-md:-mr-5 max-md:border-r-0 max-md:bg-paper max-md:pr-0 max-md:shadow-poster-edge max-md:sm:-mr-10 md:mx-1">
@@ -203,18 +215,10 @@ function Developers() {
             someone asks for next week’s bookings, your calendar opens.
           </p>
           <div className="mt-7 grid grid-cols-2 items-center gap-2 md:flex md:gap-6">
-            <a
-              href={docsUrl}
-              className={`${actionStyle} bg-ink text-paper hover:bg-muted max-md:min-h-13 max-md:px-2 max-md:text-sm`}
-            >
-              Get started
-            </a>
-            <a
-              href={sourceUrl}
-              className="font-medium underline underline-offset-4 max-md:inline-flex max-md:min-h-13 max-md:items-center max-md:justify-center max-md:border max-md:border-ink max-md:text-sm max-md:no-underline"
-            >
-              View source
-            </a>
+            <DocsLink
+              className={`${actionStyle} bg-ink text-paper hover:bg-muted max-md:min-h-13 max-md:gap-2 max-md:px-2 max-md:text-sm`}
+            />
+            <SourceLink className="inline-flex items-center gap-2 font-medium underline underline-offset-4 max-md:min-h-13 max-md:justify-center max-md:border max-md:border-ink max-md:text-sm max-md:no-underline" />
           </div>
         </div>
         <figure className="min-w-0 border border-ink bg-paper shadow-print max-md:-mr-5 max-md:border-r-0 max-md:shadow-code-edge max-md:sm:-mr-10">
@@ -253,13 +257,7 @@ export default function LandingPage() {
       </main>
       <footer className="mx-auto flex max-w-spread flex-wrap items-center justify-between gap-3 px-5 py-7 sm:gap-5 sm:px-10 lg:px-16">
         <Brand />
-        <a
-          href={sourceUrl}
-          className="inline-flex items-center gap-2 text-sm hover:underline"
-        >
-          <GitHubMark />
-          View source
-        </a>
+        <SourceLink className="inline-flex items-center gap-2 text-sm hover:underline" />
       </footer>
     </>
   );
