@@ -1,4 +1,4 @@
-import { type LanguageModel, type streamText } from 'ai';
+import { type IDIAgentModelSettings } from './agent-model-settings.js';
 
 /**
  * Settings for a single-turn IDI response generator (`streamText`).
@@ -6,20 +6,13 @@ import { type LanguageModel, type streamText } from 'ai';
  * `closeComponent`, which triggers the next request.
  */
 export type IDIAgentSettings = {
-  model: LanguageModel;
-  /** Provider-specific generation controls, including reasoning effort. */
-  providerOptions?: Parameters<typeof streamText>[0]['providerOptions'];
+  model: IDIAgentModelSettings;
   /** System prompt for the model (merged with app-specific instructions). */
   instructions: string;
 };
 
-/** Base agent configuration; apps extend with domain-specific instructions. */
-export const defaultAgentSettings: IDIAgentSettings = {
-  // Prefer the fast variant to reduce latency when opening UI components.
-  model: 'openai/gpt-6-luna-fast',
-  // Allow lightweight reasoning to interpret component parameters while keeping responses fast.
-  providerOptions: { openai: { reasoningEffort: 'low' } },
-
+/** Shared instructions; the host selects the model. */
+export const defaultAgentSettings: Pick<IDIAgentSettings, 'instructions'> = {
   instructions: `
     You are a helpful assistant for building dynamic UI on-demand.
     Your main goal is to call tools (UI components) proactively to accomplish user goals.

@@ -11,7 +11,7 @@ IDI lets a model open React components as tools. The user interacts with the UI;
 
 - Register host-owned views with `defineIDIComponent` and `defineComponentMap` from `@intent-driven-interface/frontend`.
 - Connect `useIDI({ componentMap, idiBackend: { url, requestHeaders } })` to the host's `/api/idi` route. Render the returned messages using their component render parts.
-- Construct `IDIAgent` from `@intent-driven-interface/backend` in the host. Pass parsed request bodies and a host-authorized user ID to `handleChatRequest`; return its streaming response unchanged.
+- Construct `IDIAgent` in the host with a named model preset or `model: { name: 'custom', model: configuredModel }`. Pass parsed request bodies and a host-authorized user ID to `handleChatRequest`; return its streaming response unchanged.
 - Inject `saveMessages`, `loadMessages`, `loadPinnedComponents`, and `pinComponent`. Store message snapshots by ID, return bounded chronological history pages, and preserve original input separately from optional edited input state.
 - Generation saves are awaited unless the host supplies `scheduleTask(task: Promise<void>): void`. The host owns background-task lifetime and error handling.
 - Keep authentication, authorization, credentials, domain prompts, database schema, and persistence adapters in the host. Use the browser-safe `@intent-driven-interface/backend/api-contracts` subpath for wire contracts.

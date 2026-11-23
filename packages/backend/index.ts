@@ -1,3 +1,4 @@
+export { type IDIAgentModelSettings } from './agent-model-settings.js';
 export {
   type ComponentMapForBackend,
   type PinnedIDIComponent,

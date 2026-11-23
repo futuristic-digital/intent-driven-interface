@@ -18,7 +18,7 @@ Server half of IDI: one LLM turn per request, wire types the frontend posts, and
 - `pin-component` canonicalizes original input and optional input state before persist (sorted keys and explicit `null` preserved; schema string/number distinctions retained), then host `pinComponent`, then returns `{ pinnedComponents }` from `loadPinnedComponents` so clients replace local state from the response (no client-side merge).
 - Trim context with `trimMessagesForAgent` before `streamText`; do not invent a separate context window.
 - Log with `@futuristic.digital/logger`: module logger + `logger.child(getTraceContext())` per request path.
-- Do not read `process.env` here; apps that wrap routes own env and auth.
+- Hosts choose a model preset or supply a custom SDK model. Do not choose a default provider or read `process.env` here.
 
 ## Boundaries
 

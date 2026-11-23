@@ -23,7 +23,7 @@ Use Node.js 22+. The package ships ESM JavaScript and TypeScript declarations.
 npm install @intent-driven-interface/backend ai
 ```
 
-Create an `IDIAgent` with host callbacks, then pass the parsed request body and a host-resolved user ID to `agent.handleChatRequest(body, userId)`. Return its `Response` unchanged so generation can stream.
+Create an `IDIAgent` with a model configuration and host callbacks, then pass the parsed request body and a host-resolved user ID to `agent.handleChatRequest(body, userId)`. Return its `Response` unchanged so generation can stream.
 
 Required callbacks:
 
@@ -32,7 +32,17 @@ Required callbacks:
 - `loadPinnedComponents(userId)`: return the current ordered `PinnedIDIComponent[]`.
 - `pinComponent({ userId, componentId, componentInput, componentInputState? })`: persist the original input and optional edited input independently.
 
-Callback types are exported as `IDIAgentSaveMessages`, `IDIAgentLoadMessages`, `IDIAgentLoadPinnedComponents`, and `IDIAgentPinComponent`. Pass `instructions` to append application guidance, and optionally override `model` and `providerOptions`. The default model uses AI Gateway; the host configures provider credentials and is responsible for model usage costs.
+Callback types are exported as `IDIAgentSaveMessages`, `IDIAgentLoadMessages`, `IDIAgentLoadPinnedComponents`, and `IDIAgentPinComponent`. Pass `instructions` to append application guidance.
+
+### Choose a model
+
+`model` is required. Choose one of these configurations:
+
+- **OpenAI GPT-6 Luna Fast:** `model: { name: 'openai/lunafast' }`. `reasoningEffort` accepts `'low'` (default), `'medium'`, or `'high'`. Use `custom` for other OpenAI models.
+- **Qwen3-14B and Qwen3.5 Flash:** `model: { name: 'qwen-3-14b' }` or `model: { name: 'qwen3.5-flash' }`. Both accept `reasoning: 'on'` (default) or `'off'`.
+- **Custom:** `model: { name: 'custom', model: configuredModel }`. Pass an AI SDK model object from any adapter, including one connected to a local inference server. Optional raw SDK settings (`providerOptions`, `reasoning`, `temperature`, `maxOutputTokens`) go inside this object.
+
+The OpenAI and Qwen presets use Vercel AI Gateway and cap each model response at 4,096 output tokens. Set `AI_GATEWAY_API_KEY` for API-key authentication. The custom option uses only the provider you configure. If you previously passed an SDK model directly, wrap it in the custom configuration and move `providerOptions` inside it.
 
 ## Persistence scheduling
 
@@ -42,7 +52,7 @@ Optionally provide `scheduleTask(task: Promise<void>): void` (`IDIAgentScheduleT
 
 ## API and wire compatibility
 
-- The package root exports `IDIAgent`, its options and callback types, tool builders, default settings, and context trimming.
+- The package root exports `IDIAgent`, its options and callback types, tool builders, shared default instructions, and context trimming.
 - `@intent-driven-interface/backend/api-contracts` exports shared wire contracts, including `IDIMessageWire`, `ComponentMapForBackend`, and `UIMessageMetadata`.
 - `@intent-driven-interface/backend/trim-messages-for-agent` exposes the shared 40-message context window.
 

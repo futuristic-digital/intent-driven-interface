@@ -11,6 +11,10 @@ import {
 } from 'ai';
 
 import {
+  resolveAgentModelSettings,
+  type AgentGenerationSettings,
+} from './agent-model-settings.js';
+import {
   type ClientTimeContext,
   type ComponentMapForBackend,
   type ComponentInputSnapshot,
@@ -55,9 +59,8 @@ export type IDIAgentScheduleTask = (task: Promise<void>) => void;
 
 /** App-specific overrides and host-owned persistence when constructing a {@link IDIAgent}. */
 export type IDIAgentOptions = {
-  model?: IDIAgentSettings['model'];
-  /** Override provider controls when selecting a different model. */
-  providerOptions?: IDIAgentSettings['providerOptions'];
+  /** Gateway preset or a host-configured AI SDK model. */
+  model: IDIAgentSettings['model'];
   /** Appended to the shared base instructions from {@link defaultAgentSettings}. */
   instructions?: string;
   saveMessages: IDIAgentSaveMessages;
@@ -90,12 +93,12 @@ export type IDIAgentHandleChatRequestOptions =
  * executed on the server — the client closes the loop when the user calls
  * `closeComponent`, which auto-sends the next request.
  *
- * Merges {@link defaultAgentSettings} with app-specific options. Custom
- * `instructions` are appended to the shared base prompt so every agent keeps
- * the same tool-use rules. Persistence is injected by the host app.
+ * Appends custom `instructions` to the shared base prompt so every agent keeps
+ * the same tool-use rules. The host app supplies the model and persistence.
  */
 export class IDIAgent {
-  private readonly agentSettings: IDIAgentSettings;
+  private readonly generationSettings: AgentGenerationSettings;
+  private readonly instructions: string;
   private readonly saveMessages: IDIAgentSaveMessages;
   private readonly loadMessages: IDIAgentLoadMessages;
   private readonly loadPinnedComponents: IDIAgentLoadPinnedComponents;
@@ -104,15 +107,16 @@ export class IDIAgent {
 
   constructor(options: IDIAgentOptions) {
     const {
+      model,
       instructions: additionalInstructions,
       saveMessages,
       loadMessages,
       loadPinnedComponents,
       pinComponent,
       scheduleTask,
-      ...settingsOverrides
     } = options;
 
+    this.generationSettings = resolveAgentModelSettings(model);
     this.saveMessages = saveMessages;
     this.loadMessages = loadMessages;
     this.loadPinnedComponents = loadPinnedComponents;
@@ -125,16 +129,10 @@ export class IDIAgent {
     const additionalInstructionsTrimmed = additionalInstructions
       ?.toString()
       .trim();
-    const instructions =
+    this.instructions =
       defaultInstructionsTrimmed +
       (additionalInstructionsTrimmed ? '\n\n' : '') +
       (additionalInstructionsTrimmed ?? '');
-
-    this.agentSettings = {
-      ...defaultAgentSettings,
-      ...settingsOverrides,
-      instructions,
-    };
   }
 
   /** Keeps generation saves alive through either the host scheduler or an awaited promise. */
@@ -200,9 +198,8 @@ export class IDIAgent {
 
       // One LLM turn: emit text and/or tool calls, then stop; the client resumes with tool outputs.
       const stream = streamText({
-        model: this.agentSettings.model,
-        providerOptions: this.agentSettings.providerOptions,
-        instructions: `${this.agentSettings.instructions}\n\nUser's current local time: ${userLocalDateTime} (timezone: ${clientTimeContext.timeZone}).`,
+        ...this.generationSettings,
+        instructions: `${this.instructions}\n\nUser's current local time: ${userLocalDateTime} (timezone: ${clientTimeContext.timeZone}).`,
         messages: await convertIDIMessagesToModelMessages(messagesTrimmed),
         tools,
       });
