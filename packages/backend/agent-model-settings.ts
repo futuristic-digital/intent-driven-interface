@@ -1,9 +1,6 @@
 import { gateway, type LanguageModel, type streamText } from 'ai';
 
-const OPENAI_LUNA_FAST_MODEL_NAME = 'gpt-6-luna-fast';
-const QWEN_14B_MODEL_NAME = 'qwen-3-14b';
-const QWEN_3_5_FLASH_MODEL_NAME = 'qwen3.5-flash';
-const PRESET_MAX_OUTPUT_TOKENS = 4096;
+const GPT_OSS_20B_MODEL_NAME = 'gpt-oss-20b';
 
 export type AgentGenerationSettings = Pick<
   Parameters<typeof streamText>[0],
@@ -11,14 +8,7 @@ export type AgentGenerationSettings = Pick<
 > & { model: Extract<LanguageModel, object> };
 
 export type IDIAgentModelSettings =
-  | {
-      name: typeof OPENAI_LUNA_FAST_MODEL_NAME;
-      reasoningEffort?: 'low' | 'medium' | 'high';
-    }
-  | {
-      name: typeof QWEN_14B_MODEL_NAME | typeof QWEN_3_5_FLASH_MODEL_NAME;
-      reasoning?: 'on' | 'off';
-    }
+  | { name: typeof GPT_OSS_20B_MODEL_NAME }
   | ({ name: 'custom' } & AgentGenerationSettings);
 
 /** Resolve the host's selection once, without applying Gateway defaults to custom models. */
@@ -42,19 +32,15 @@ export function resolveAgentModelSettings(
     return { model, providerOptions, reasoning, temperature, maxOutputTokens };
   }
 
-  if (name === QWEN_14B_MODEL_NAME || name === QWEN_3_5_FLASH_MODEL_NAME) {
+  if (name === GPT_OSS_20B_MODEL_NAME) {
     return {
-      model: gateway(`alibaba/${name}`),
-      maxOutputTokens: PRESET_MAX_OUTPUT_TOKENS,
-      reasoning: config.reasoning === 'off' ? 'none' : 'low',
-    };
-  }
-
-  if (name === OPENAI_LUNA_FAST_MODEL_NAME) {
-    return {
-      model: gateway('openai/gpt-6-luna-fast'),
-      maxOutputTokens: PRESET_MAX_OUTPUT_TOKENS,
-      reasoning: config.reasoningEffort ?? 'low',
+      model: gateway(`openai/gpt-oss-20b`),
+      providerOptions: {
+        gateway: {
+          order: ['groq'],
+          sort: 'ttft',
+        },
+      },
     };
   }
 

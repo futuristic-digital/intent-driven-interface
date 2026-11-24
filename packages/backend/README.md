@@ -38,11 +38,10 @@ Callback types are exported as `IDIAgentSaveMessages`, `IDIAgentLoadMessages`, `
 
 `model` is required. Choose one of these configurations:
 
-- **OpenAI GPT-6 Luna Fast:** `model: { name: 'openai/lunafast' }`. `reasoningEffort` accepts `'low'` (default), `'medium'`, or `'high'`. Use `custom` for other OpenAI models.
-- **Qwen3-14B and Qwen3.5 Flash:** `model: { name: 'qwen-3-14b' }` or `model: { name: 'qwen3.5-flash' }`. Both accept `reasoning: 'on'` (default) or `'off'`.
+- **OpenAI GPT-OSS 20B:** `model: { name: 'gpt-oss-20b' }`. This preset uses Vercel AI Gateway with `order: ['groq']` and `sort: 'ttft'` (time to first token). Set `AI_GATEWAY_API_KEY` for API-key authentication.
 - **Custom:** `model: { name: 'custom', model: configuredModel }`. Pass an AI SDK model object from any adapter, including one connected to a local inference server. Optional raw SDK settings (`providerOptions`, `reasoning`, `temperature`, `maxOutputTokens`) go inside this object.
 
-The OpenAI and Qwen presets use Vercel AI Gateway and cap each model response at 4,096 output tokens. Set `AI_GATEWAY_API_KEY` for API-key authentication. The custom option uses only the provider you configure. If you previously passed an SDK model directly, wrap it in the custom configuration and move `providerOptions` inside it.
+
 
 ## Persistence scheduling
 
