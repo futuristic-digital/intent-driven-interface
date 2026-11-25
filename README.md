@@ -1,21 +1,264 @@
-# Intent Driven Interface
+# Intent-Driven Interface
 
-Intent-Driven Interface (IDI) connects what people ask for in natural language to interactive React components in your app. If someone asks to see next week’s bookings, the AI can open your calendar to that week. The user sees their options and decides what happens next. The app can pass the result back to the AI to continue the conversation.
+**Intent-Driven Interface (IDI) turns natural-language requests into focused interactions with React components.**
 
-Users can reopen views from their conversation history or pin frequently used views with their settings. Your app provides the components and controls what data it shares with the model.
+Instead of sending people to a page full of controls, IDI opens a component built for the task they asked for. If someone asks to see this month’s expenses, IDI can open the expenses component with its month filter already set to the current month. When a component produces a result, the app can pass it back to the model to continue the conversation.
 
-[Visit the project homepage](https://www.intent-driven-interface.dev/).
+Your app provides the components and controls what data it shares with the model. It can also let users reopen a component with its previous settings or bookmark those settings for quick access.
 
-## Packages
+**[Visit the project homepage](https://www.intent-driven-interface.dev)**
 
-- [`@intent-driven-interface/frontend`](packages/frontend/README.md) — `useIDI`, `defineIDIComponent`, component maps, lifecycle, history, and pins.
-- [`@intent-driven-interface/backend`](packages/backend/README.md) — `IDIAgent`, one model turn per request, wire contracts, and host-injected persistence callbacks.
-- [`apps/demo`](apps/demo/README.md) — a Next.js logistics example with shipment lists, maps, and editing.
-- [`@intent-driven-interface/skill`](packages/skill/README.md) — agent instructions for component authoring and host integration.
+---
 
-IDI owns no database, authentication, or domain components. Hosts supply `saveMessages`, `loadMessages`, `loadPinnedComponents`, and `pinComponent`, plus an optional background-task scheduler. There is no component schema versioning or migration layer; hosts own compatibility with their stored data.
+## Add skills to your coding agent
 
-[See the framework roadmap](ROADMAP.md).
+IDI skills work with any coding agent that supports the [Agent Skills standard](https://agentskills.io/), including Codex, Claude Code, Cursor, GitHub Copilot, Gemini CLI, OpenCode, or Cline.
+
+The `@intent-driven-interface/skill` dependency provides two skills:
+
+- [`idi-setup`](packages/skill/idi-setup/SKILL.md): Connect IDI to your app and decide who can access it and what to persist.
+- [`idi-components`](packages/skill/idi-components/SKILL.md): Create and maintain the React components IDI opens.
+
+Install the package and register both skills with your coding agent:
+
+```sh
+npm install --save-dev @intent-driven-interface/skill
+npx @intent-driven-interface/skill add-skills
+```
+
+Run these commands from your app's directory containing `package.json`.
+
+Registration creates project-local symlinks to both skills in `node_modules`. Omit `--agent` to use `.agents/skills/`, or choose a destination explicitly:
+
+- `--agent default` for the shared `.agents/skills/` directory (used by Codex, Cursor, Gemini CLI, OpenCode, and others)
+- `--agent claude` for Claude Code (`.claude/skills/`)
+- `--agent github` for GitHub Copilot (`.github/skills/`)
+- `--agent cline` for Cline (`.cline/skills/`)
+
+To register both skills in multiple directories at once, separate the names with commas:
+
+```sh
+npx @intent-driven-interface/skill add-skills --agent default, claude, github
+```
+
+*You should commit the symlinks so teammates only need to install dependencies, including dev dependencies. Dependency updates also update the skills. If your agent doesn't see the skills, check that each `SKILL.md` is readable through its symlink, then restart the agent session. Windows may require Developer Mode or elevated permissions for symlinks.*
+
+---
+
+## Set up IDI
+
+**Your coding agent can set up IDI for you.** [Add skills to your coding agent](#add-skills-to-your-coding-agent), then ask it to integrate IDI into your app.
+
+To set up IDI manually, use Node.js 22+ and React 19.2.4+ and install the IDI packages:
+
+```sh
+npm install @intent-driven-interface/frontend @intent-driven-interface/backend react@^19.2.4
+```
+
+*Your app owns authentication, storage, domain data, and the React UI. IDI manages the active conversation in the browser, streams model responses, and lets the model choose from the components your app registers.*
+
+### 1. Create a server endpoint
+
+Configure an `IDIAgent` on your server. This example uses your app’s authentication helper and an optional message store. If you don’t need to save chat history, omit the `messagesTable` import and the `onMessageUpdate` callback.
+
+```ts
+import { IDIAgent, gateway } from '@intent-driven-interface/backend';
+import { getUserFromRequest } from './auth';
+import { messagesTable } from './db';
+
+export async function POST(request: Request): Promise<Response> {
+  const user = await getUserFromRequest(request);
+  if (!user) return new Response(null, { status: 401 });
+
+  const body: unknown = await request.json().catch(() => null);
+  const agent = new IDIAgent({
+    model: gateway('openai/gpt-oss-20b'),
+    instructions: 'Be a kind, quick-witted guide. Help first, joke when it fits.',
+    onMessageUpdate: (message) => messagesTable.upsert(user.id, message),
+  });
+  return agent.handleChatRequest(body);
+}
+```
+
+#### Choose a `model`
+
+**IDI requires a configured [AI SDK](https://ai-sdk.dev) model; we recommend to just configure as simply as the example above.**
+
+**IDI doesn’t need a frontier model.** Its main job is to pick a component from the list your app registers and fill in its inputs, not build a UI from scratch. Prefer a small, fast model that makes reliable tool calls and keeps replies brief. [`gpt-oss-20b`](https://vercel.com/ai-gateway/models/openai/gpt-oss-20b) is our top pick for this job: it’s fast, inexpensive and well suited to a focused task. It’s open-weight: you can self-host it, or you can run it locally on a midrange machine with about 16 GB of memory available to the model.
+
+The example above uses it through [Vercel AI Gateway](https://vercel.com/ai-gateway). To run the example, register to Vercel and [create a Gateway API key](https://vercel.com/docs/ai-gateway/authentication-and-byok/api-keys) and set it as the `AI_GATEWAY_API_KEY` environment variable on your server.
+
+To use another provider or a locally hosted model, pass its AI SDK model instance as `model`. Set optional generation settings such as `temperature`, `reasoning`, `maxOutputTokens`, and `providerOptions` alongside `model`.
+
+#### Customize the assistant with `instructions`
+
+Add `instructions` to give the assistant a voice or app-specific guidance. IDI appends them to its built-in instructions.
+
+#### Save chat history with `onMessageUpdate`
+
+IDI calls `onMessageUpdate` when it receives a new user message, when the assistant finishes responding, and when the user edits or closes a component. Each call gives the complete message to the callback, not individual streamed tokens.
+
+Use the message ID to insert or update the record in your app’s storage. If you omit the callback, chat still works, but new messages won’t be saved across page reloads.
+
+### 2. Create an IDI component
+
+**Your coding agent can build and maintain IDI components for you.** [Add the IDI skills](#add-skills-to-your-coding-agent), then tell your agent what users should be able to see or do.
+
+Say a user asks, “Show my expenses for April 2026.” The model can pick the `expenses` component and supply `{ month: '2026-04' }`, and your React component controls what the user sees. Use `defineIDIComponent` to describe that interaction:
+
+```tsx
+import { defineIDIComponent, schema } from '@intent-driven-interface/frontend';
+
+export const expenses = defineIDIComponent({
+  title: 'View expenses',
+  description: 'Show expenses for the requested month.',
+  inputSchema: schema.object({
+    month: schema
+      .string()
+      .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
+      .describe('Month in YYYY-MM format'),
+  }),
+  component: ({ componentInput }) => (
+    <h2>Expenses for {componentInput.month}</h2>
+  ),
+  componentSummary: ({ componentInput }) => (
+    <span>Expenses: {componentInput.month}</span>
+  ),
+});
+```
+
+**How does the model choose?** `title` and `description` tell it when to open the component. `inputSchema` tells it what to pass: here, a month in `YYYY-MM` format. For each component, IDI sends the tool definition to the server. Your React code stays in the browser.
+
+**What does the user see?** While the component is open, `component` renders the live view. Replace the `<h2>` with your app’s expense view and use `componentInput.month` to select the month. After the view closes, `componentSummary` shows a short reminder in the conversation.
+
+`schema` re-exports Zod. Keep fields required for strict tool inputs; use `.nullable()` when a value can be unset rather than making it optional or giving it a default. Add `inputExamples` if a valid input would be hard to guess.
+
+### 3. Create the component map
+
+Register the components your chat can open. Each key is a component ID: `{ expenses }` registers the component from step 2 under the ID `expenses`.
+
+```ts
+import { defineComponentMap } from '@intent-driven-interface/frontend';
+import { expenses } from './expenses';
+
+export const components = defineComponentMap({ expenses });
+```
+
+Keep each ID stable. [Saved messages](#save-and-resume-chat-history) and [pins](#pin-and-reopen-a-component) use it to find the component, so you can change the display title without renaming the key.
+
+### 4. Connect and render the conversation
+
+Call `useIDI` inside your React chat component. It returns `messages` to render, `sendMessage` to send the user’s input, and `status` to track the response.
+
+- Set `backend.url` to your `POST` endpoint (`/api/idi` in this example).
+- Pass the [component map from step 3](#3-create-the-component-map) to `useIDI`.
+- Render the live component while it’s open and its summary when `part.isClosed` is `true`.
+- Show a loading indicator while `status` is `submitted` (new user message is just sent) or `streaming` (assistant message is composing and streaming).
+
+```tsx
+'use client';
+
+import { useIDI } from '@intent-driven-interface/frontend';
+import { components } from './components';
+
+
+export function Chat() {
+  const { messages, sendMessage, status } = useIDI({
+    backend: { url: '/api/idi' },
+    components,
+  });
+
+  return (
+    <>
+      <ul>
+        {messages.map((message) => (
+          <li key={message.id} className={message.role === 'user' ? 'right' : 'left'}>
+            {message.parts.map((part, index) => {
+              if (part.type === 'text') return part.text;
+              if (part.type !== 'render-component') return null;
+              return part.isClosed
+                ? <part.componentSummary key={index} {...part.componentProps} />
+                : <part.component key={index} {...part.componentProps} />;
+            })}
+          </li>
+        ))}
+      </ul>
+      {(status === 'submitted' || status === 'streaming') && (
+        <p role="status">Responding…</p>
+      )}
+      <form action={(data) => sendMessage(String(data.get('message')))}>
+        <label>
+          Message <input name="message" required />
+        </label>
+        <button type="submit">Send</button>
+      </form>
+    </>
+  );
+}
+```
+
+---
+
+## Supply request context
+
+Use request context to give the model extra information, such as the browser's current time. On the server, import `schema` from `@intent-driven-interface/backend` and add this option to `new IDIAgent(...)`. Both IDI packages re-export their Zod dependency as `schema`, so no separate Zod install is needed.
+
+```ts
+contextSchema: schema.object({ currentTime: schema.iso.datetime() }),
+```
+
+On the client, add the matching option to `useIDI(...)`:
+
+```ts
+context: () => ({ currentTime: new Date().toISOString() }),
+```
+
+IDI calls the `context` callback for each generation request, including follow-ups triggered by closing a component. The server validates the returned context and passes it to the model as client data, not as system instructions. **Don't rely on client context for authorization or put secrets in it.**
+
+Omit both options if you don't need context. A generation request returns `400` if context is sent without a schema or fails validation. Component-only updates don't send context.
+
+## Component lifecycle
+
+- A model-opened component becomes live after the response finishes, with its tool input available and no result yet (`input-available`). Use `isClosed`, not the SDK tool state, to choose between the live view and its summary. `componentInput` is the latest effective input: edited state when present, otherwise the original invocation input. `setComponentInputState` replaces editable input without changing the original or starting a model turn.
+- Use `outputSchema` to declare the user's possible result. `setComponentOutputState` updates a draft without closing the component or starting a model turn. The live component receives the draft, not the final output.
+- `closeComponent()` waits for the server to acknowledge the component update before replacing the component with its summary. If the request fails, the component stays open with its draft intact and no follow-up turn starts; handle the rejection so the user can retry. On success, closing normally starts the next model turn unless it resumes a caller. Use `closeComponent({ setComponentOutput: output, agentFollowUp: false })` to supply a result without another turn.
+- Summaries receive effective input and optional final output. If you define `outputSummary`, your renderer can show it alongside the component summary. Model tool results can include the edited `componentInputState` and final `componentOutput` without rewriting the original invocation or stored message.
+- Use `callComponent(id, input, options)` to open another component without a model turn. Mark a component with `followUpComponent: true` to hide it from the model and open it from another component through `useCallComponent()`. Pass `{ resumeCallerAfterOutput: true }` as call options to restore the caller when the follow-up closes instead of starting another turn.
+
+## Initial messages, history, and pins
+
+### Start a new chat
+
+Omit `initialMessages` to start with an empty conversation. To show a welcome message instead, create it with `defineInitialMessages` and pass the result to `useIDI` as `initialMessages`.
+
+### Save and resume chat history
+
+Load the conversation’s saved messages in your app and validate them with `idiMessagesSchema.safeParseAsync` before passing them as `initialMessages`. `useIDI` uses them when the chat mounts; it doesn’t fetch or paginate history. When switching conversations, use the conversation ID as the chat component’s React `key` so the new chat starts with its own history.
+
+The optional `onMessageUpdate?: (message: IDIMessageWire) => void | Promise<void>` belongs only to `new IDIAgent({ model, instructions, onMessageUpdate })`. Import its `OnMessageUpdate` type from `@intent-driven-interface/backend`, never from the frontend, and don't pass it to `useIDI`.
+
+On generation requests, the server calls it with the newest user message before generation and with the complete assistant message at the end of a successful stream—not for each token or for replayed context. For browser-only component calls, restores, resumes, draft edits, and closes, the server receives complete assistant component messages in update-only requests. Upsert the full wire message by its stable ID within the authenticated user's history. Store `IDIMessageWire` (aliased as `AiSdkMessage` in the frontend), not the render-only `IDIMessage`.
+
+Return the actual write promise if IDI should wait for it. To avoid awaiting the database, the request-scoped callback can call the runtime's `ctx.waitUntil(promise)` directly and return `void`. The browser still waits for the HTTP acknowledgment on explicit close; a `204` does not mean detached work wrote durably. Your app owns ordering, retries, and durability for detached writes. Don't assume a promise will survive a disconnect.
+
+### Pin and reopen a component
+
+To pin a `render-component` part, save `part.componentId` and `part.inputSnapshot` in your app. The snapshot preserves the original input and any edits. To reopen the pinned view, call `restoreComponent(componentId, snapshot)` from `useIDI`. Your app stores the pins and keeps them compatible when component schemas change; IDI doesn’t migrate saved snapshots.
+
+## HTTP API
+
+`useIDI` sends both strict JSON shapes to the same `backend.url` with the same `backend.requestHeaders`. Neither shape includes an `op` or `operation` field:
+
+- **Generation:** POST `{ messages, componentMap, context? }` with a non-empty wire message array, serializable tool definitions, and optional JSON context validated against the agent's `contextSchema`. The response is an AI SDK UI message stream.
+- **Update only:** POST `{ message }` with one complete assistant component message. No model runs. The endpoint returns `204` after the callback completes or as a no-op if the callback is omitted.
+
+The endpoint returns `400` for an invalid body or generation context and `500` if the callback throws or rejects before a stream starts or on an update-only request. A stream already underway cannot change its HTTP status.
+
+The browser-safe `@intent-driven-interface/backend/api-contracts` entry point exports `IDIMessageWire`, `ComponentMapForBackend`, `IDIRequestBody`, and `ComponentInputSnapshot`. Use `idiRequestBodySchema.safeParseAsync(body)` to validate either POST shape and `idiMessagesSchema.safeParseAsync(messages)` to validate wire messages at app boundaries, such as when reading stored history. The history schema accepts `[]`; generation requires at least one message. Message validation checks SDK parts and metadata without revalidating old component inputs or outputs against the current component map.
+
+The backend package also exports the tool builder, shared default instructions, and context trimming. The `@intent-driven-interface/backend/trim-messages-for-agent` entry point exposes the shared 40-message model context window.
+
+---
 
 ## Run the landing page
 
@@ -48,30 +291,7 @@ Use Node.js 22.13+ and npm 11.11+.
 
 4. Open `http://localhost:3000/demo`.
 
-The demo posts to `/demo/api/idi`. Conversation and component data are sent to AI Gateway, which may incur model charges; maps use Mapbox. Use fictional data only. Chat history, pins, and shipment edits live only in the open page and reset when you refresh.
-
-## Use in a host application
-
-Install the published packages:
-
-```sh
-npm install @intent-driven-interface/frontend @intent-driven-interface/backend
-```
-
-Both packages ship ESM JavaScript and TypeScript declarations. For local workspace or `file:` consumption, run `npm run build:packages` first; `npm run dev:demo` builds dependencies and watches package sources for changes.
-
-Register a component map in the browser, connect `useIDI` to your route, and construct `IDIAgent` on the server with your persistence callbacks. Resolve and authorize the owner in the host route before passing its ID to the agent. See the package READMEs for the API.
-
-## Add the agent skill
-
-Install the skill as a development dependency, then register it with your coding agent:
-
-```sh
-npm install --save-dev @intent-driven-interface/skill
-npx @intent-driven-interface/skill add-skill --agent codex
-```
-
-For Claude Code, use `--agent claude`. Registration creates a project-local symlink to the installed package, so dependency updates also update the skill. There is no `postinstall` script. See the [skill README](packages/skill/README.md) for details.
+The demo posts to `/demo/api/idi` and needs no persistence. Pins live in the page's React state; the chat, pins, and shipment edits reset on refresh. Conversation and component data are sent to AI Gateway, which may incur model charges; maps use Mapbox. Use fictional data only.
 
 ## Build and check
 
@@ -80,9 +300,10 @@ npm run build:packages
 npm run lint
 npm run type-check
 npm run build:demo
+npm run build:landing
 ```
 
-Package builds write JavaScript and declarations to each package's `dist/` directory. The frontend and backend `prepack` hooks build the packages and their workspace dependencies before packaging. Published packages include the MIT license.
+The React and server packages ship ESM JavaScript and TypeScript declarations. Run `npm run build:packages` before consuming them locally through the workspace or a `file:` dependency. The demo development command builds dependencies and watches package sources for changes. The frontend and backend `prepack` hooks build their packages before packaging.
 
 ## License
 
