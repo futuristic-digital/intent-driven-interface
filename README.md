@@ -239,45 +239,14 @@ The summary button opens a new instance of the same component at the end of the 
 
 Closing normally starts another model turn. The model sees the original input in the tool call, and the result contains `output` (the final outcome or `null`) plus `inputOverride` if the input changed. To close the component without starting another model turn, call `closeComponent({ agentFollowUp: false })`.
 
-See [Follow-up components](docs/follow-up-components.md) to open one component from another or control whether the model or your app can open it.
-
 ---
 
-## Chat history and pins
+## Guides and reference
 
-See [Chat history and pins](docs/chat-history-and-pins.md) to save and resume conversations or let users pin components for quick access.
-
-
-## Supply request context
-
-Use request context to give the model extra information, such as the browser's current time. On the server, import `schema` from `@intent-driven-interface/backend` and add this option to `new IDIAgent(...)`. Both IDI packages re-export their Zod dependency as `schema`, so no separate Zod install is needed.
-
-```ts
-contextSchema: schema.object({ currentTime: schema.iso.datetime() }),
-```
-
-On the client, add the matching option to `useIDI(...)`:
-
-```ts
-context: () => ({ currentTime: new Date().toISOString() }),
-```
-
-IDI calls the `context` callback for each generation request, including follow-ups triggered by closing a component. The server validates the returned context and passes it to the model as client data, not as system instructions. **Don't rely on client context for authorization or put secrets in it.**
-
-Omit both options if you don't need context. A generation request returns `400` if context is sent without a schema or fails validation. Component-only updates don't send context.
-
-## HTTP API
-
-`useIDI` sends both strict JSON shapes to the same `backend.url` with the same `backend.requestHeaders`. Neither shape includes an `op` or `operation` field:
-
-- **Generation:** POST `{ messages, componentMap, context? }` with a non-empty wire message array, serializable tool definitions, and optional JSON context validated against the agent's `contextSchema`. The response is an AI SDK UI message stream.
-- **Update only:** POST `{ message }` with one complete assistant component message. No model runs. The endpoint returns `204` after the callback completes or as a no-op if the callback is omitted.
-
-The endpoint returns `400` for an invalid body or generation context and `500` if the callback throws or rejects before a stream starts or on an update-only request. A stream already underway cannot change its HTTP status.
-
-The browser-safe `@intent-driven-interface/backend/api-contracts` entry point exports `IDIChatMessage`, `ComponentMapForBackend`, and `IDIRequestBody`. It also exports `ComponentInput`, the `{ initial, override? }` type used by render parts, which is available from `@intent-driven-interface/backend` as well. Use `idiRequestBodySchema.safeParseAsync(body)` to validate either POST shape and `idiMessagesSchema.safeParseAsync(messages)` to validate wire messages at app boundaries, such as when reading stored history. The history schema accepts `[]`; generation requires at least one message. Message validation checks SDK parts and metadata without revalidating old component inputs or outputs against the current component map.
-
-The backend package also exports the tool builder, shared default instructions, and context trimming. The `@intent-driven-interface/backend/trim-messages-for-agent` entry point exposes the shared 40-message model context window.
+- [Chat history and pins](docs/chat-history-and-pins.md) — Save and resume conversations and let users pin components.
+- [Follow-up components](docs/follow-up-components.md) — Chain components and control how they can open.
+- [Request context](docs/request-context.md) — Give the model extra information, such as the browser’s current time.
+- [HTTP API](docs/http-api.md) — Look up request formats, response codes, and validation schemas.
 
 ---
 
