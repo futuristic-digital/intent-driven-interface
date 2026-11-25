@@ -59,7 +59,7 @@ npm install @intent-driven-interface/frontend @intent-driven-interface/backend r
 
 ### 1. Create a server endpoint
 
-Configure an `IDIAgent` on your server. This example uses your app’s authentication helper and an optional message store. If you don’t need to save chat history, omit the `messagesTable` import and the `onMessageUpdate` callback.
+Configure an `IDIAgent` on your server.
 
 ```ts
 import { IDIAgent, gateway } from '@intent-driven-interface/backend';
@@ -241,7 +241,7 @@ Closing normally starts another model turn. The model sees the original input in
 
 ### Follow-up components
 
-Use the `useOpenComponent` prop to open another registered component from the live component without asking the model. For example, give the expenses view a **Help** button that opens an `expenseHelp` component. Register `expenseHelp` alongside `expenses` in the component map; it needs no input.
+Use `useOpenComponent` to open another registered component without asking the model. For example, add a **View receipts** button to the expenses view that opens receipts for the selected month. Register `expenseReceipts` alongside `expenses` with the same `{ month }` input schema.
 
 In the `expenses` definition:
 
@@ -255,26 +255,34 @@ component: ({ componentInput, useOpenComponent }) => {
       <button
         type="button"
         onClick={() =>
-          openComponent('expenseHelp', {}, { reopenThisComponentOnClose: true })
+          openComponent(
+            'expenseReceipts',
+            { month: componentInput.month },
+            { reopenThisComponentOnClose: true }
+          )
         }
       >
-        Help
+        View receipts
       </button>
     </>
   );
 },
 ```
 
-Give the help view a **Done** button that calls `closeComponent()`. When it closes successfully, IDI reopens expenses with the month the user was viewing, even if they changed it before opening help. No output or model turn is needed. Omit `reopenThisComponentOnClose` to use the normal close behavior instead.
+With `reopenThisComponentOnClose: true`, any successful `closeComponent` call from the receipts view automatically reopens expenses on the same month, with or without output. No separate back button or model turn is needed. Omit the option to use the normal close behavior instead.
 
 ### Control how components open
 
 Set these flags in a component’s `defineIDIComponent` definition:
 
-- `disableStandaloneOpen: true` blocks `openComponent(id, input)` from `useIDI`. **Useful when** users shouldn’t reopen a component from history or pins. For example, a deletion confirmation should appear only after the user clicks **Delete** on an item.
-- `disableAgentOpen: true` prevents the model from opening the component. **Useful when** only your app knows the component is needed. For example, the app can open a save-conflict view when the server reports that someone else edited the record.
+- `disableStandaloneOpen: true` blocks calls from chat history or pins. Keep the component’s summary visible in history, but omit reopen and pin actions.
+- `disableAgentOpen: true` keeps the component out of the model’s tool list without blocking your app from opening it.
 
-The flags work independently. Set both on a deletion confirmation so it can open from the item’s **Delete** button, but not through the agent or from chat history or pins.
+The flags work independently. For example:
+
+- **Keep a summary without letting users reopen it.** Set `disableStandaloneOpen: true` on a one-time review. The model can still open the review, but once it closes, chat history shows only the summary, without **Reopen** or **Pin** actions.
+- **Open from your app, not from the model.** Set `disableAgentOpen: true` on `expenseReceipts`. The agent can’t open it, but the **View receipts** button in the [example above](#follow-up-components) still can. Users can also reopen it from history or pins.
+- **Open only from another component.** Set both flags on a deletion confirmation. Use `useOpenComponent()` in the item component to open the confirmation from its **Delete** button. The model can’t open the confirmation directly, and users can’t reopen it from history or pins.
 
 ---
 
@@ -282,19 +290,129 @@ The flags work independently. Set both on a deletion confirmation so it can open
 
 ### Save a message
 
-Use the server-side `onMessageUpdate` callback from the [endpoint example](#1-create-a-server-endpoint). Store the complete message it receives (`IDIMessageWire`), not the `IDIMessage` used for rendering. Insert or update by message ID within the authenticated user’s conversation, so editing or closing a component updates its existing message instead of adding a duplicate.
+Use the server-side [`onMessageUpdate` callback](#save-chat-history-with-onmessageupdate) to save the complete `IDIChatMessage`. Insert or update by message ID so editing or closing a component updates the existing message instead of creating a duplicate.
 
-Return the write promise to wait for storage before acknowledging the update. If your server supports background work, you can schedule the write with your runtime’s `waitUntil` and return `void`. In that case, a `204` acknowledges the request, not a completed write. Your app is responsible for write ordering and retries.
+*If you await the incoming message’s save in `onMessageUpdate` or return the write promise, IDI waits for the save before generating a response. To let the agent start responding sooner, start the save without awaiting it or returning its promise. If your runtime can stop background work when the request ends, don't forget to wrap the promise in `waitUntil` (or its equivalent).*
 
 ### Resume a chat
 
-Load the conversation’s messages in order and validate them with `idiMessagesSchema.safeParseAsync` from `@intent-driven-interface/backend/api-contracts`. Pass the validated messages to `useIDI` as `initialMessages`. The hook reads them when the chat mounts; it doesn’t fetch or paginate history. When switching chats, use the conversation ID as the chat component’s React `key` so it mounts with the right messages.
+On page load, read the messages [saved by the server endpoint](#save-chat-history-with-onmessageupdate) and pass them as `initialMessages`.
 
-For a new chat, omit `initialMessages` to start empty, or use `defineInitialMessages` to supply a welcome message.
+```tsx
+import { eq } from 'drizzle-orm';
+import { idiMessagesSchema } from '@intent-driven-interface/backend/api-contracts';
+import { Chat } from './chat';
+import { db } from './db';
+import { chatMessages } from './db/schema';
+
+export async function SavedChat({ userId }: { userId: string }) {
+  const rows = await db
+    .select({ message: chatMessages.message })
+    .from(chatMessages)
+    .where(eq(chatMessages.userId, userId))
+    .orderBy(chatMessages.sequence);
+
+  const history = await idiMessagesSchema.safeParseAsync(rows.map(({ message }) => message));
+  if (!history.success) throw new Error('Could not load saved chat messages');
+
+  return <Chat initialMessages={history.data} />;
+}
+```
+
+With no saved messages, the chat starts empty. For a new chat, you can also omit `initialMessages` or use `defineInitialMessages` to supply a welcome message. `useIDI` reads `initialMessages` when the chat mounts; it doesn’t fetch history.
 
 ### Pin a component
 
-A pin lets users reopen a component with saved inputs without finding the original message in chat history. Your app can save `part.componentId` and the effective input (`part.componentInput.override ?? part.componentInput.initial`). When the user selects the pin, pass those saved values to `openComponent(componentId, input)`. Hide pin and history reopen controls for components with `disableStandaloneOpen: true`. If a component’s input schema changes, your app is responsible for keeping its pins compatible.
+A pin lets users reopen a component without having to find the original message in chat history or ask the agent again to open it.
+
+#### Pin from the chat
+
+To pin a chat component, save `componentId` and the component’s current input (`componentInput.override ?? componentInput.initial`). Don’t offer pinning for components with `disableStandaloneOpen: true`.
+
+```ts
+// save-pin.ts
+'use server';
+
+import { schema } from '@intent-driven-interface/backend';
+import { refresh } from 'next/cache';
+import { getCurrentUser } from './auth';
+import { db } from './db';
+import { chatPins } from './db/schema';
+
+export async function savePin(componentId: string, input: object): Promise<void> {
+  const user = await getCurrentUser(); // Read the signed-in user from the server session.
+  if (!user) throw new Error('Sign in to save a pin');
+
+  await db.insert(chatPins).values({ userId: user.id, componentId, input });
+  refresh();
+}
+```
+
+Import `savePin` in `Chat` and call `renderPinButton(part)` next to the component or its summary.
+
+```tsx
+function renderPinButton(part: {
+  componentId: string;
+  componentInput: { initial: object; override?: object };
+  disableStandaloneOpen?: boolean;
+}) {
+  if (part.disableStandaloneOpen) return null;
+
+  const input = part.componentInput.override ?? part.componentInput.initial;
+  return (
+    <form action={savePin(part.componentId, input)}>
+      <button type="submit">Pin</button>
+    </form>
+  );
+}
+```
+
+#### Show and reopen pins
+```tsx
+const pins = await db
+  .select({ id: chatPins.id, componentId: chatPins.componentId, input: chatPins.input })
+  .from(chatPins)
+  .where(eq(chatPins.userId, userId))
+  .orderBy(desc(chatPins.id))
+  .limit(50);
+
+return <Chat initialMessages={history.data} pins={pins} />;
+```
+
+Add a `pins` prop to `Chat` and call `renderPins()` where you want the list to appear. Call `openComponent(componentId, input)` with the saved values to open a new instance without asking the agent. Only show pins for components that are still registered, allow standalone opening, and accept the saved input.
+
+```tsx
+function renderPins() {
+  function isRegisteredComponent(id: string): id is keyof typeof components {
+    return Object.hasOwn(components, id);
+  }
+
+  return (
+    <ul>
+      {pins.map(({ id, componentId, input }) => {
+        if (!isRegisteredComponent(componentId)) return null;
+        const component = components[componentId];
+        if (component.disableStandaloneOpen) return null;
+
+        const savedInput = component.inputSchema.safeParse(input);
+        if (!savedInput.success) return null;
+
+        return (
+          <li key={id}>
+            <button
+              type="button"
+              disabled={status === 'submitted' || status === 'streaming'}
+              onClick={() => openComponent(componentId, savedInput.data)}
+            >
+              {component.title}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+```
 
 ## Supply request context
 
@@ -323,7 +441,7 @@ Omit both options if you don't need context. A generation request returns `400` 
 
 The endpoint returns `400` for an invalid body or generation context and `500` if the callback throws or rejects before a stream starts or on an update-only request. A stream already underway cannot change its HTTP status.
 
-The browser-safe `@intent-driven-interface/backend/api-contracts` entry point exports `IDIMessageWire`, `ComponentMapForBackend`, and `IDIRequestBody`. It also exports `ComponentInput`, the `{ initial, override? }` type used by render parts, which is available from `@intent-driven-interface/backend` as well. Use `idiRequestBodySchema.safeParseAsync(body)` to validate either POST shape and `idiMessagesSchema.safeParseAsync(messages)` to validate wire messages at app boundaries, such as when reading stored history. The history schema accepts `[]`; generation requires at least one message. Message validation checks SDK parts and metadata without revalidating old component inputs or outputs against the current component map.
+The browser-safe `@intent-driven-interface/backend/api-contracts` entry point exports `IDIChatMessage`, `ComponentMapForBackend`, and `IDIRequestBody`. It also exports `ComponentInput`, the `{ initial, override? }` type used by render parts, which is available from `@intent-driven-interface/backend` as well. Use `idiRequestBodySchema.safeParseAsync(body)` to validate either POST shape and `idiMessagesSchema.safeParseAsync(messages)` to validate wire messages at app boundaries, such as when reading stored history. The history schema accepts `[]`; generation requires at least one message. Message validation checks SDK parts and metadata without revalidating old component inputs or outputs against the current component map.
 
 The backend package also exports the tool builder, shared default instructions, and context trimming. The `@intent-driven-interface/backend/trim-messages-for-agent` entry point exposes the shared 40-message model context window.
 
