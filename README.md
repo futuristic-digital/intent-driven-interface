@@ -4,7 +4,7 @@
 
 Instead of sending people to a page full of controls, IDI opens a component built for the task they asked for. If someone asks to see this month’s expenses, IDI can open the expenses component with its month filter already set to the current month. When a component produces a result, the app can pass it back to the model to continue the conversation.
 
-Your app provides the components and controls what data it shares with the model. It can also let users reopen a component with its previous settings or bookmark those settings for quick access.
+Your app provides the components and controls what data it shares with the model. It can also let users reopen a component from chat history with its saved settings or pin those settings for quick access.
 
 **[Visit the project homepage](https://www.intent-driven-interface.dev)**
 
@@ -98,7 +98,7 @@ Add `instructions` to give the assistant a voice or app-specific guidance. IDI a
 
 IDI calls `onMessageUpdate` when it receives a new user message, when the assistant finishes responding, and when the user edits or closes a component. Each call gives the complete message to the callback, not individual streamed tokens.
 
-Use the message ID to insert or update the record in your app’s storage. If you omit the callback, chat still works, but new messages won’t be saved across page reloads.
+Use the message ID to insert or update the record in your app’s storage. If you omit the callback, chat still works, but messages cannot be restored across page reloads.
 
 ### 2. Create an IDI component
 
@@ -110,7 +110,7 @@ Say a user asks, “Show my expenses for April 2026.” The model can pick the `
 import { defineIDIComponent, schema } from '@intent-driven-interface/frontend';
 
 export const expenses = defineIDIComponent({
-  title: 'View expenses',
+  title: 'Show expenses',
   description: 'Show expenses for the requested month.',
   inputSchema: schema.object({
     month: schema
@@ -129,7 +129,7 @@ export const expenses = defineIDIComponent({
 
 **How does the model choose?** `title` and `description` tell it when to open the component. `inputSchema` tells it what to pass: here, a month in `YYYY-MM` format. For each component, IDI sends the tool definition to the server. Your React code stays in the browser.
 
-**What does the user see?** While the component is open, `component` renders the live view. Replace the `<h2>` with your app’s expense view and use `componentInput.month` to select the month. After the view closes, `componentSummary` shows a short reminder in the conversation.
+**What does the user see?** While the expenses component is open, `component` renders its contents. Replace the `<h2>` with your app’s expense list, filtered by `componentInput.month`. After the component closes, `componentSummary` shows the selected month in the conversation.
 
 `schema` re-exports Zod. Keep fields required for strict tool inputs; use `.nullable()` when a value can be unset rather than making it optional or giving it a default. Add `inputExamples` if a valid input would be hard to guess.
 
@@ -144,7 +144,7 @@ import { expenses } from './expenses';
 export const components = defineComponentMap({ expenses });
 ```
 
-Keep each ID stable. [Saved messages](#save-and-resume-chat-history) and [pins](#pin-and-reopen-a-component) use it to find the component, so you can change the display title without renaming the key.
+Keep each ID stable. [Saved messages](#resume-a-chat) and [pins](#pin-a-component) use it to find the component, so you can change the display title without renaming the key.
 
 ### 4. Connect and render the conversation
 
@@ -161,9 +161,8 @@ Call `useIDI` inside your React chat component. It returns `messages` to render,
 import { useIDI } from '@intent-driven-interface/frontend';
 import { components } from './components';
 
-
 export function Chat() {
-  const { messages, sendMessage, status } = useIDI({
+  const { messages, sendMessage, status, openComponent } = useIDI({
     backend: { url: '/api/idi' },
     components,
   });
@@ -174,18 +173,46 @@ export function Chat() {
         {messages.map((message) => (
           <li key={message.id} className={message.role === 'user' ? 'right' : 'left'}>
             {message.parts.map((part, index) => {
+              // Text message
               if (part.type === 'text') return part.text;
-              if (part.type !== 'render-component') return null;
-              return part.isClosed
-                ? <part.componentSummary key={index} {...part.componentProps} />
-                : <part.component key={index} {...part.componentProps} />;
+
+              if (part.type === 'render-component') {
+                // Component is live (last message in the chat flow): render the component
+                if (!part.isClosed) return <part.component key={index} {...part.componentProps} />;
+
+                // Component is closed (an entry in the chat history): show a compact summary inside a reopen button
+                return (
+                  <div key={index}>
+                    <button
+                      type="button"
+                      aria-label={`Reopen '${components[part.componentId].title}' component`}
+                      disabled={status === 'submitted' || status === 'streaming'}
+                      onClick={() =>
+                        openComponent(
+                          part.componentId,
+                          part.componentInput.override ?? part.componentInput.initial
+                        )
+                      }
+                    >
+                      <part.componentSummary {...part.componentProps} />
+                    </button>
+                  </div>
+                );
+              }
+
+              // only text and component render supported in this example
+              return null
             })}
           </li>
         ))}
       </ul>
+
+      {/* Loading */}
       {(status === 'submitted' || status === 'streaming') && (
         <p role="status">Responding…</p>
       )}
+
+      {/* Send new message (ask for a component) */}
       <form action={(data) => sendMessage(String(data.get('message')))}>
         <label>
           Message <input name="message" required />
@@ -197,7 +224,77 @@ export function Chat() {
 }
 ```
 
+#### Reopen a component
+
+The summary button opens a new instance of the same component at the end of the conversation without asking the model. The original summary stays in place. The new instance starts with the effective input (the override if present, otherwise the original input). For example, if the user changes the month from April to May, the original instance keeps April as initial and May as override. Reopening the component uses May as initial for the new instance. No override or output carries over.
+
 ---
+
+## Component lifecycle
+
+1. **Open.** A component opens for interaction only if the model ends its reply with a call to that component and the reply is still the latest message in the conversation. Use `part.isClosed` to decide whether to render `part.component` or `part.componentSummary`. A new message or an explicit close by the user sets `part.isClosed` to `true`. 
+2. **Edit.** `componentInput` has two keys: `initial` is the original input, and `override` holds any edits made while the component is open. `setComponentInput` updates only `override`, so the model can distinguish the input it originally sent in response to the user’s request from what the user changed during the live interaction. If the component defines an `outputSchema`, use `setComponentOutput` to save a draft result.
+3. **Close.** Call `closeComponent()` to finalize the draft, or `closeComponent({ setComponentOutput: output })` to supply a result as you close. If the server can’t save the final result, the component stays open and keeps the draft intact. Handle the rejection so the user can retry. Any model follow-up starts only after the save succeeds.
+4. **Show the summary.** `componentSummary` receives the current input and optional final output. If you define an `outputSummary`, render it alongside the component summary. `part.componentOutput` holds the draft while the component is open and the final output once it closes.
+
+Closing normally starts another model turn. The model sees the original input in the tool call, and the result contains `output` (the final outcome or `null`) plus `inputOverride` if the input changed. To close the component without starting another model turn, call `closeComponent({ agentFollowUp: false })`.
+
+### Follow-up components
+
+Use the `useOpenComponent` prop to open another registered component from the live component without asking the model. For example, give the expenses view a **Help** button that opens an `expenseHelp` component. Register `expenseHelp` alongside `expenses` in the component map; it needs no input.
+
+In the `expenses` definition:
+
+```tsx
+component: ({ componentInput, useOpenComponent }) => {
+  const openComponent = useOpenComponent<typeof components>();
+
+  return (
+    <>
+      <h2>Expenses for {componentInput.month}</h2>
+      <button
+        type="button"
+        onClick={() =>
+          openComponent('expenseHelp', {}, { reopenThisComponentOnClose: true })
+        }
+      >
+        Help
+      </button>
+    </>
+  );
+},
+```
+
+Give the help view a **Done** button that calls `closeComponent()`. When it closes successfully, IDI reopens expenses with the month the user was viewing, even if they changed it before opening help. No output or model turn is needed. Omit `reopenThisComponentOnClose` to use the normal close behavior instead.
+
+### Control how components open
+
+Set these flags in a component’s `defineIDIComponent` definition:
+
+- `disableStandaloneOpen: true` blocks `openComponent(id, input)` from `useIDI`. **Useful when** users shouldn’t reopen a component from history or pins. For example, a deletion confirmation should appear only after the user clicks **Delete** on an item.
+- `disableAgentOpen: true` prevents the model from opening the component. **Useful when** only your app knows the component is needed. For example, the app can open a save-conflict view when the server reports that someone else edited the record.
+
+The flags work independently. Set both on a deletion confirmation so it can open from the item’s **Delete** button, but not through the agent or from chat history or pins.
+
+---
+
+## Chat history and pins
+
+### Save a message
+
+Use the server-side `onMessageUpdate` callback from the [endpoint example](#1-create-a-server-endpoint). Store the complete message it receives (`IDIMessageWire`), not the `IDIMessage` used for rendering. Insert or update by message ID within the authenticated user’s conversation, so editing or closing a component updates its existing message instead of adding a duplicate.
+
+Return the write promise to wait for storage before acknowledging the update. If your server supports background work, you can schedule the write with your runtime’s `waitUntil` and return `void`. In that case, a `204` acknowledges the request, not a completed write. Your app is responsible for write ordering and retries.
+
+### Resume a chat
+
+Load the conversation’s messages in order and validate them with `idiMessagesSchema.safeParseAsync` from `@intent-driven-interface/backend/api-contracts`. Pass the validated messages to `useIDI` as `initialMessages`. The hook reads them when the chat mounts; it doesn’t fetch or paginate history. When switching chats, use the conversation ID as the chat component’s React `key` so it mounts with the right messages.
+
+For a new chat, omit `initialMessages` to start empty, or use `defineInitialMessages` to supply a welcome message.
+
+### Pin a component
+
+A pin lets users reopen a component with saved inputs without finding the original message in chat history. Your app can save `part.componentId` and the effective input (`part.componentInput.override ?? part.componentInput.initial`). When the user selects the pin, pass those saved values to `openComponent(componentId, input)`. Hide pin and history reopen controls for components with `disableStandaloneOpen: true`. If a component’s input schema changes, your app is responsible for keeping its pins compatible.
 
 ## Supply request context
 
@@ -217,34 +314,6 @@ IDI calls the `context` callback for each generation request, including follow-u
 
 Omit both options if you don't need context. A generation request returns `400` if context is sent without a schema or fails validation. Component-only updates don't send context.
 
-## Component lifecycle
-
-- A model-opened component becomes live after the response finishes, with its tool input available and no result yet (`input-available`). Use `isClosed`, not the SDK tool state, to choose between the live view and its summary. `componentInput` is the latest effective input: edited state when present, otherwise the original invocation input. `setComponentInputState` replaces editable input without changing the original or starting a model turn.
-- Use `outputSchema` to declare the user's possible result. `setComponentOutputState` updates a draft without closing the component or starting a model turn. The live component receives the draft, not the final output.
-- `closeComponent()` waits for the server to acknowledge the component update before replacing the component with its summary. If the request fails, the component stays open with its draft intact and no follow-up turn starts; handle the rejection so the user can retry. On success, closing normally starts the next model turn unless it resumes a caller. Use `closeComponent({ setComponentOutput: output, agentFollowUp: false })` to supply a result without another turn.
-- Summaries receive effective input and optional final output. If you define `outputSummary`, your renderer can show it alongside the component summary. Model tool results can include the edited `componentInputState` and final `componentOutput` without rewriting the original invocation or stored message.
-- Use `callComponent(id, input, options)` to open another component without a model turn. Mark a component with `followUpComponent: true` to hide it from the model and open it from another component through `useCallComponent()`. Pass `{ resumeCallerAfterOutput: true }` as call options to restore the caller when the follow-up closes instead of starting another turn.
-
-## Initial messages, history, and pins
-
-### Start a new chat
-
-Omit `initialMessages` to start with an empty conversation. To show a welcome message instead, create it with `defineInitialMessages` and pass the result to `useIDI` as `initialMessages`.
-
-### Save and resume chat history
-
-Load the conversation’s saved messages in your app and validate them with `idiMessagesSchema.safeParseAsync` before passing them as `initialMessages`. `useIDI` uses them when the chat mounts; it doesn’t fetch or paginate history. When switching conversations, use the conversation ID as the chat component’s React `key` so the new chat starts with its own history.
-
-The optional `onMessageUpdate?: (message: IDIMessageWire) => void | Promise<void>` belongs only to `new IDIAgent({ model, instructions, onMessageUpdate })`. Import its `OnMessageUpdate` type from `@intent-driven-interface/backend`, never from the frontend, and don't pass it to `useIDI`.
-
-On generation requests, the server calls it with the newest user message before generation and with the complete assistant message at the end of a successful stream—not for each token or for replayed context. For browser-only component calls, restores, resumes, draft edits, and closes, the server receives complete assistant component messages in update-only requests. Upsert the full wire message by its stable ID within the authenticated user's history. Store `IDIMessageWire` (aliased as `AiSdkMessage` in the frontend), not the render-only `IDIMessage`.
-
-Return the actual write promise if IDI should wait for it. To avoid awaiting the database, the request-scoped callback can call the runtime's `ctx.waitUntil(promise)` directly and return `void`. The browser still waits for the HTTP acknowledgment on explicit close; a `204` does not mean detached work wrote durably. Your app owns ordering, retries, and durability for detached writes. Don't assume a promise will survive a disconnect.
-
-### Pin and reopen a component
-
-To pin a `render-component` part, save `part.componentId` and `part.inputSnapshot` in your app. The snapshot preserves the original input and any edits. To reopen the pinned view, call `restoreComponent(componentId, snapshot)` from `useIDI`. Your app stores the pins and keeps them compatible when component schemas change; IDI doesn’t migrate saved snapshots.
-
 ## HTTP API
 
 `useIDI` sends both strict JSON shapes to the same `backend.url` with the same `backend.requestHeaders`. Neither shape includes an `op` or `operation` field:
@@ -254,56 +323,11 @@ To pin a `render-component` part, save `part.componentId` and `part.inputSnapsho
 
 The endpoint returns `400` for an invalid body or generation context and `500` if the callback throws or rejects before a stream starts or on an update-only request. A stream already underway cannot change its HTTP status.
 
-The browser-safe `@intent-driven-interface/backend/api-contracts` entry point exports `IDIMessageWire`, `ComponentMapForBackend`, `IDIRequestBody`, and `ComponentInputSnapshot`. Use `idiRequestBodySchema.safeParseAsync(body)` to validate either POST shape and `idiMessagesSchema.safeParseAsync(messages)` to validate wire messages at app boundaries, such as when reading stored history. The history schema accepts `[]`; generation requires at least one message. Message validation checks SDK parts and metadata without revalidating old component inputs or outputs against the current component map.
+The browser-safe `@intent-driven-interface/backend/api-contracts` entry point exports `IDIMessageWire`, `ComponentMapForBackend`, and `IDIRequestBody`. It also exports `ComponentInput`, the `{ initial, override? }` type used by render parts, which is available from `@intent-driven-interface/backend` as well. Use `idiRequestBodySchema.safeParseAsync(body)` to validate either POST shape and `idiMessagesSchema.safeParseAsync(messages)` to validate wire messages at app boundaries, such as when reading stored history. The history schema accepts `[]`; generation requires at least one message. Message validation checks SDK parts and metadata without revalidating old component inputs or outputs against the current component map.
 
 The backend package also exports the tool builder, shared default instructions, and context trimming. The `@intent-driven-interface/backend/trim-messages-for-agent` entry point exposes the shared 40-message model context window.
 
 ---
-
-## Run the landing page
-
-From the repository root, run `npm ci` and `npm run dev:landing`, then open
-`http://localhost:3001`. The landing page shows a sample field-service workspace with a scripted
-walkthrough. It uses no API keys or external requests.
-
-## Run the demo
-
-Use Node.js 22.13+ and npm 11.11+.
-
-1. Install workspace dependencies:
-
-   ```sh
-   npm ci
-   ```
-
-2. Create `apps/demo/.env.local`:
-
-   ```dotenv
-   AI_GATEWAY_API_KEY=your_ai_gateway_key
-   NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_access_token
-   ```
-
-3. Start the app:
-
-   ```sh
-   npm run dev:demo
-   ```
-
-4. Open `http://localhost:3000/demo`.
-
-The demo posts to `/demo/api/idi` and needs no persistence. Pins live in the page's React state; the chat, pins, and shipment edits reset on refresh. Conversation and component data are sent to AI Gateway, which may incur model charges; maps use Mapbox. Use fictional data only.
-
-## Build and check
-
-```sh
-npm run build:packages
-npm run lint
-npm run type-check
-npm run build:demo
-npm run build:landing
-```
-
-The React and server packages ship ESM JavaScript and TypeScript declarations. Run `npm run build:packages` before consuming them locally through the workspace or a `file:` dependency. The demo development command builds dependencies and watches package sources for changes. The frontend and backend `prepack` hooks build their packages before packaging.
 
 ## License
 
