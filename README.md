@@ -239,50 +239,7 @@ The summary button opens a new instance of the same component at the end of the 
 
 Closing normally starts another model turn. The model sees the original input in the tool call, and the result contains `output` (the final outcome or `null`) plus `inputOverride` if the input changed. To close the component without starting another model turn, call `closeComponent({ agentFollowUp: false })`.
 
-### Follow-up components
-
-Use `useOpenComponent` to open another registered component without asking the model. For example, add a **View receipts** button to the expenses view that opens receipts for the selected month. Register `expenseReceipts` alongside `expenses` with the same `{ month }` input schema.
-
-In the `expenses` definition:
-
-```tsx
-component: ({ componentInput, useOpenComponent }) => {
-  const openComponent = useOpenComponent<typeof components>();
-
-  return (
-    <>
-      <h2>Expenses for {componentInput.month}</h2>
-      <button
-        type="button"
-        onClick={() =>
-          openComponent(
-            'expenseReceipts',
-            { month: componentInput.month },
-            { reopenThisComponentOnClose: true }
-          )
-        }
-      >
-        View receipts
-      </button>
-    </>
-  );
-},
-```
-
-With `reopenThisComponentOnClose: true`, any successful `closeComponent` call from the receipts view automatically reopens expenses on the same month, with or without output. No separate back button or model turn is needed. Omit the option to use the normal close behavior instead.
-
-### Control how components open
-
-Set these flags in a component’s `defineIDIComponent` definition:
-
-- `disableStandaloneOpen: true` blocks calls from chat history or pins. Keep the component’s summary visible in history, but omit reopen and pin actions.
-- `disableAgentOpen: true` keeps the component out of the model’s tool list without blocking your app from opening it.
-
-The flags work independently. For example:
-
-- **Keep a summary without letting users reopen it.** Set `disableStandaloneOpen: true` on a one-time review. The model can still open the review, but once it closes, chat history shows only the summary, without **Reopen** or **Pin** actions.
-- **Open from your app, not from the model.** Set `disableAgentOpen: true` on `expenseReceipts`. The agent can’t open it, but the **View receipts** button in the [example above](#follow-up-components) still can. Users can also reopen it from history or pins.
-- **Open only from another component.** Set both flags on a deletion confirmation. Use `useOpenComponent()` in the item component to open the confirmation from its **Delete** button. The model can’t open the confirmation directly, and users can’t reopen it from history or pins.
+See [Follow-up components](docs/follow-up-components.md) to open one component from another or control whether the model or your app can open it.
 
 ---
 
