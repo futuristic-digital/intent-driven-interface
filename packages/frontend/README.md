@@ -1,49 +1,40 @@
 # `@intent-driven-interface/frontend`
 
-React bindings for Intent-Driven Interface (IDI): typed component registration, `useIDI`, and AI SDK message conversion. The host renders the registered components; the hook manages conversation state and follow-up requests.
+React bindings for Intent-Driven Interface (IDI). Your app registers and renders the React components; `useIDI` manages the conversation and sends requests to your IDI endpoint.
 
-## Coding-agent setup
+## Get started
 
-For coding-agent-assisted development, install and activate `@intent-driven-interface/skill`. It provides shared frontend/backend integration guidance and component-authoring rules.
-
-Run from your application's directory containing `package.json`, not from inside `node_modules`:
+Use Node.js 22+ and React 19.2.4+.
 
 ```sh
-npm install --save-dev @intent-driven-interface/skill
-npx @intent-driven-interface/skill add-skill --agent codex
+npm install @intent-driven-interface/frontend @intent-driven-interface/backend react@^19.2.4
 ```
 
-For Claude Code, use `--agent claude`. If the dependency is already installed, only run `add-skill`. This creates a symlink at `.agents/skills/intent-driven-interface` (Codex) or `.claude/skills/intent-driven-interface` (Claude Code); dependency updates keep its contents current. There is no install hook. If the skill is not discovered, check that the link's `SKILL.md` is readable and restart your agent session.
+1. Register components with `defineIDIComponent` and collect them with `defineComponentMap`.
+2. In a client component, call `useIDI({ backend: { url: '/api/idi' }, components })` with your component map.
+3. Render the `IDIRenderMessage` values in `messages`. For `render-component` parts, use the live view and `part.componentProps` while open, and the summary when `part.isClosed` is true. Use `sendMessage` to start a model turn or `openComponent(id, input)` to open a component directly.
 
-## Getting started
+See the [integration guide](https://github.com/futuristic-digital/intent-driven-interface#set-up-idi) for the server endpoint and a complete example.
 
-Use React 19.2.4+. The package ships ESM JavaScript and TypeScript declarations, preserving React client boundaries. Message and component-call IDs use the AI SDK's `generateId`.
+## Control how components open
 
-```sh
-npm install @intent-driven-interface/frontend @intent-driven-interface/backend ai react
-```
+- `disableStandaloneOpen: true` makes `useIDI().openComponent()` log an error and do nothing, including when called from history or a bookmark.
+- `disableAgentOpen: true` prevents the agent from opening the component.
 
-1. Register views with `defineIDIComponent` and collect them with `defineComponentMap`.
-2. Call `useIDI({ idiBackend: { url: "/api/idi", requestHeaders: {} }, componentMap })` inside a client component.
-3. Render the returned `messages` and use `sendMessage` or `callComponent` to continue the conversation.
+The flags are independent. Neither affects `useOpenComponent()` inside another component. When opening another component that way, pass `{ reopenThisComponentOnClose: true }` to reopen the current component when the new one closes, even without output.
 
-`IDIBackend` describes the endpoint and host-supplied request headers. `IDIMessage` describes renderable messages; `AiSdkMessage` describes their SDK representation. `schema` re-exports Zod, and `defineInitialMessages` creates seed messages used when no history exists.
+## Component input and output
 
-## Component contract
+- `part.componentInput` is a `ComponentInput<Input>` from `@intent-driven-interface/backend/api-contracts`: `{ initial, override? }`. The initial input is the original invocation. The optional override is a full replacement, not a patch.
+- Live views and summaries receive effective `componentInput` (`override ?? initial`). Live views use `setComponentInput(inputOrUpdater)` to replace the override without starting a model turn or changing the original invocation.
+- For components with an `outputSchema`, live `componentOutput` is the editable draft. Use `setComponentOutput(outputOrUpdater)` to update it, or pass `undefined` to clear it. This does not close the view or start a model turn.
+- `part.componentOutput` is the draft while open and the final result once closed. Pass only finalized output to summaries.
+- `closeComponent()` finalizes the draft. Use `closeComponent({ setComponentOutput: output })` to set the final result and close in one update. Explicit close waits for the server acknowledgment; if it fails, the view and its draft remain open. On success, IDI normally requests a model follow-up unless `agentFollowUp: false` or the close reopens the component that launched it.
 
-Each component supplies an input schema, live view, and compact summary. Optional output schemas describe the user's final interaction. Input fields must be required for strict tool calling; use nullable fields for unset values rather than optional fields or defaults. Component maps are converted to JSON Schema before transmission.
+## History and bookmarks
 
-- `componentInput` is the latest effective input: edited state when present, otherwise original invocation input.
-- `setComponentInputState` replaces editable input without requesting an agent turn. Original invocation input never changes.
-- `setComponentOutputState` persists an output draft without closing the view.
-- `closeComponent()` finalizes the draft and normally requests the next agent turn. Use `closeComponent({ setComponentOutput: output, agentFollowUp: false })` to finalize explicitly without a follow-up.
-- Summaries receive effective input and optional final output. Live views receive draft output, not final output.
-- `followUpComponent: true` hides a component from the model while keeping it available to other components through `callComponent`.
+Your app owns history and bookmarks. Pass stored `IDIChatMessage` values to `useIDI` as `initialMessages`, or use `defineInitialMessages` to seed a new chat. The raw SDK metadata uses `componentInputState` and `componentOutputState`.
 
-## History and pins
+To reopen a component from history, call `openComponent(part.componentId, part.componentInput.override ?? part.componentInput.initial)`. This opens a fresh view without starting a model turn. The effective input becomes the new initial input, with no override or output carried over.
 
-`useIDI` loads history and pins on mount, supports `loadOlderMessages`, and exposes loading flags and `hasOlderMessages`. `pinComponent` replaces local pins with the backend's returned list. The same component can have multiple pins with different input snapshots.
-
-Normal calls use `callComponent(id, input, options)`. Hosts restore snapshots through `restoreComponent(id, { componentInput, componentInputState })`. Original input and optional edited state remain separate; untouched components do not create an input-state copy. Closing or displacing a component preserves this distinction.
-
-Generation sends fresh browser time and timezone. The wire operation strings remain `load-message-history` and `list-pinned-components`, matching the backend even though its host callbacks are named `loadMessages` and `loadPinnedComponents`.
+A bookmark can store the component ID and effective input. Open it with `openComponent(componentId, input)`. For components with `disableStandaloneOpen: true`, keep history summaries visible but omit reopen and bookmark actions.
