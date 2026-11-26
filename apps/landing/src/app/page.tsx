@@ -12,7 +12,7 @@ const principles = [
     name: 'Control',
     title: 'You get the final say.',
     detail:
-      'You know exactly what each action will do, and it only happens when you select it.',
+      'You know exactly what each action will do, and it only happens when you press it.',
   },
   {
     name: 'Privacy',
@@ -51,10 +51,13 @@ const labelStyle =
   'flex items-center gap-3 font-mono text-xs font-medium tracking-label uppercase';
 const actionStyle =
   'inline-flex min-h-12 items-center justify-center gap-2.5 px-6 text-base font-medium transition-colors';
+const headerSourceStyle =
+  'min-h-11 items-center gap-2 border border-ink px-3.5 py-2 text-sm font-medium transition-colors hover:bg-ink hover:text-paper sm:min-h-0 lg:ml-5';
+const mainContentId = 'main';
 
 function DocsLink({ className }: { className: string }) {
   return (
-    <a href={sourceUrl} className={className}>
+    <a href={`${sourceUrl}#set-up-idi`} className={className}>
       <svg
         viewBox="0 0 24 24"
         fill="none"
@@ -88,9 +91,10 @@ function Header() {
         <div className="flex h-15 items-center sm:h-17 lg:h-20">
           <Brand />
         </div>
+        <SourceLink className={`inline-flex sm:hidden ${headerSourceStyle}`} />
         <nav
           aria-label="Page sections"
-          className="order-last flex w-full items-center justify-between gap-3 border-t border-rule text-sm sm:order-none sm:py-3 sm:ml-auto sm:w-auto sm:gap-6 sm:border-0 lg:gap-9"
+          className="flex w-full items-center justify-between gap-3 border-t border-rule text-sm sm:py-3 sm:ml-auto sm:w-auto sm:gap-6 sm:border-0 lg:gap-9"
         >
           {navigation.map(({ label, id }) => (
             <a
@@ -102,7 +106,7 @@ function Header() {
             </a>
           ))}
         </nav>
-        <SourceLink className="inline-flex min-h-11 items-center gap-2 border border-ink px-3.5 py-2 text-sm font-medium transition-colors hover:bg-ink hover:text-paper sm:min-h-0 lg:ml-5" />
+        <SourceLink className={`hidden sm:inline-flex ${headerSourceStyle}`} />
       </div>
     </header>
   );
@@ -125,7 +129,9 @@ function Hero() {
         </p>
         <div className="mt-6 grid grid-cols-2 items-center gap-2 max-md:order-4 md:mt-8 md:flex md:flex-wrap md:gap-x-6 md:gap-y-4">
           <a
-            href={`#${sections.example}`}
+            href="/demo"
+            target="_blank"
+            rel="noopener"
             className={`${actionStyle} bg-ink text-paper hover:bg-muted max-md:min-h-13 max-md:gap-2 max-md:px-2 max-md:text-sm`}
           >
             <svg
@@ -141,7 +147,7 @@ function Hero() {
                 strokeLinecap="square"
               />
             </svg>
-            See the demo
+            Try the live demo
           </a>
           <DocsLink className="inline-flex min-h-12 items-center gap-2 font-medium underline decoration-rule underline-offset-5 hover:decoration-ink max-md:min-h-13 max-md:justify-center max-md:border max-md:border-ink max-md:px-2 max-md:text-sm max-md:no-underline" />
         </div>
@@ -153,7 +159,7 @@ function Hero() {
           width={1400}
           height={1050}
           preload
-          unoptimized
+          sizes="(min-width: 86rem) 36rem, (min-width: 64rem) calc(-7rem + 50vw), (min-width: 48rem) calc(-5rem + 50vw), 100vw"
           className="aspect-4/3 w-full object-cover md:aspect-square xl:aspect-6/5"
         />
       </div>
@@ -170,7 +176,10 @@ function Principles() {
       <h2 className="font-display text-section leading-none tracking-display">
         Five ways you <em className="inline-block">stay in control.</em>
       </h2>
-      <ol className="mt-7 divide-y divide-rule border-y border-t-2 border-b-rule border-t-ink md:mt-9 lg:mt-11">
+      <ol
+        role="list"
+        className="mt-7 divide-y divide-rule border-y border-t-2 border-b-rule border-t-ink md:mt-9 lg:mt-11"
+      >
         {principles.map(({ name, title, detail, featured }) => (
           <li
             key={name}
@@ -204,15 +213,22 @@ function Developers() {
       id={sections.developers}
       className="border-y border-ink bg-sunflower"
     >
-      <div className="mx-auto grid max-w-spread items-center gap-10 px-5 py-14 sm:px-10 md:grid-cols-2 md:py-16 lg:gap-20 lg:px-16 lg:py-22">
+      <div className="mx-auto grid max-w-spread items-start gap-10 px-5 py-14 sm:px-10 md:py-16 lg:grid-cols-[5fr_7fr] lg:gap-14 lg:px-16 lg:py-22">
         <div>
-          <p className={labelStyle}>For developers and vibe coders</p>
+          <p className={labelStyle}>For developers</p>
           <h2 className="mt-5 font-display text-section leading-none tracking-display">
-            Build this into <em className="max-md:inline-block">your app.</em>
+            Bring your React components <em className="inline-block">into the flow.</em>
           </h2>
           <p className="mt-5 max-w-lg text-lg leading-relaxed">
-            Connect your React components to the things people ask to do. When
-            someone asks for next week’s bookings, your calendar opens.
+            “Show me our bookings from Halloween onward.” The model chooses the
+            bookings view and sets <code>startDate</code> to October 31. Your
+            app renders the calendar with its own booking data.
+          </p>
+          <p className="mt-4 max-w-lg leading-relaxed">
+            Using a coding agent?{' '}
+            <a href={`${sourceUrl}#add-skills-to-your-coding-agent`} className="font-medium underline underline-offset-4">
+              Add the IDI skills
+            </a>.
           </p>
           <div className="mt-7 grid grid-cols-2 items-center gap-2 md:flex md:gap-6">
             <DocsLink
@@ -223,14 +239,25 @@ function Developers() {
         </div>
         <figure className="min-w-0 border border-ink bg-paper shadow-print max-md:-mr-5 max-md:border-r-0 max-md:shadow-code-edge max-md:sm:-mr-10">
           <figcaption className="border-b border-rule px-5 py-3 font-mono text-sm">
-            components.ts
+            bookings.tsx
           </figcaption>
-          <pre className="overflow-x-auto p-5 font-mono text-sm leading-7 max-md:px-4 max-md:text-xs max-md:leading-6 max-md:whitespace-pre-wrap max-md:wrap-anywhere sm:p-7">
-            <code>{`import { defineComponentMap }
-  from "@intent-driven-interface/frontend";
+          <pre tabIndex={0} aria-label="Bookings component example" className="overflow-x-auto p-4 font-mono text-xs leading-6 sm:p-5 sm:text-sm">
+            <code>{`import { defineIDIComponent, schema }
+  from '@intent-driven-interface/frontend';
+import { BookingsCalendar } from './BookingsCalendar';
 
-export const components = defineComponentMap({
-  openBookings,
+export const bookings = defineIDIComponent({
+  title: 'View bookings',
+  description: 'Show bookings from a requested date onward.',
+  inputSchema: schema.object({
+    startDate: schema.iso.date(),
+  }),
+  component: ({ componentInput }) => (
+    <BookingsCalendar startDate={componentInput.startDate} />
+  ),
+  componentSummary: ({ componentInput }) => (
+    <span>Bookings from {componentInput.startDate}</span>
+  ),
 });`}</code>
           </pre>
         </figure>
@@ -243,13 +270,13 @@ export default function LandingPage() {
   return (
     <>
       <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-10 focus:bg-paper focus:p-3"
+        href={`#${mainContentId}`}
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-10 focus:bg-paper focus:p-3"
       >
         Skip to content
       </a>
       <Header />
-      <main id="main">
+      <main id={mainContentId} tabIndex={-1}>
         <Hero />
         <WorkspaceDemo />
         <Principles />

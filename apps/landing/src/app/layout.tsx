@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: 'Intent-Driven Interface — The right controls, at the right time.',
   description:
     'Tell the app what you want to do. AI brings the right controls into view. You decide what happens next.',
+  alternates: { canonical: 'https://www.intent-driven-interface.dev/' },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

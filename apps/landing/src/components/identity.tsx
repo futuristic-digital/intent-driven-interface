@@ -27,7 +27,7 @@ export function SunMark({ className = '' }: { className?: string }) {
 export function Brand() {
   return (
     <a
-      href="#"
+      href="/"
       aria-label="Intent-Driven Interface home"
       className="group inline-flex items-center gap-2.5"
     >

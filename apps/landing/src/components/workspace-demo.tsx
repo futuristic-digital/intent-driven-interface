@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -16,6 +17,8 @@ const campaignRequest =
 const bookingTitle = 'Bookings';
 const bookingWeek = 'Week of Nov 23';
 const campaignTitle = 'Maintenance campaign';
+const demoHeadingId = `${sections.example}-heading`;
+const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
 const stages = {
   bookingMessage: 0,
   calendar: 1,
@@ -23,12 +26,14 @@ const stages = {
   collapsingCalendar: 3,
   campaign: 4,
   complete: 5,
+  preview: 6,
 };
 type PinPhase = 'idle' | 'pressing' | 'flying' | 'settled';
 const characterDelay = 29;
 const componentReadingTime = 1200;
 const pinFlightDuration = 540;
 const calendarCollapseDuration = 500;
+const loopDelay = 6500;
 
 const calendarDays = [
   { day: 'Mon', date: 23, time: '9:00 AM', job: 'Boiler service' },
@@ -71,7 +76,10 @@ function BookingsCalendar({ collapsed = false }: { collapsed?: boolean }) {
     >
       <div className="min-h-0 overflow-hidden">
         {/* Keep the calendar at its expanded width, inside the two card borders. */}
-        <ul className="grid w-[calc(100cqw-2px)] gap-2 border-t border-rule p-3 max-sm:divide-y max-sm:divide-rule sm:grid-cols-5 sm:p-4">
+        <ul
+          role="list"
+          className="grid w-[calc(100cqw-2px)] gap-2 border-t border-rule p-3 max-sm:divide-y max-sm:divide-rule sm:grid-cols-5 sm:p-4"
+        >
           {calendarDays.map(({ day, date, time, job }) => (
             <li
               key={date}
@@ -160,7 +168,7 @@ function RequestMessage({
 
 const threadSpacing = 'space-y-5 px-4 py-5 sm:px-7 sm:py-8';
 
-function WorkspaceDemoSize() {
+const WorkspaceDemoSize = memo(function WorkspaceDemoSize() {
   return (
     <div
       aria-hidden="true"
@@ -188,7 +196,7 @@ function WorkspaceDemoSize() {
       </div>
     </div>
   );
-}
+});
 
 export function WorkspaceDemo() {
   const frame = useRef<HTMLDivElement>(null);
@@ -196,17 +204,22 @@ export function WorkspaceDemo() {
   const pinnedCard = useRef<HTMLDivElement>(null);
   const flyingCard = useRef<HTMLDivElement>(null);
   const pinOrigin = useRef<DOMRect | null>(null);
-  const [step, setStep] = useState(stages.bookingMessage);
-  const [pinPhase, setPinPhase] = useState<PinPhase>('idle');
+  const [step, setStep] = useState(stages.preview);
+  const [pinPhase, setPinPhase] = useState<PinPhase>('settled');
   const [characters, setCharacters] = useState(0);
-  const [started, setStarted] = useState(false);
+  const [autoPlay, setAutoPlay] = useState(true);
+  const [motionAllowed, setMotionAllowed] = useState(false);
+  const [inView, setInView] = useState(false);
+  const [pinHasFocus, setPinHasFocus] = useState(false);
 
   const pressingPin = pinPhase === 'pressing';
   const showMobileSidebar = pinPhase === 'flying';
   const pinned = showMobileSidebar || pinPhase === 'settled';
   const compactCalendar = step >= stages.collapsingCalendar;
   const showCampaign = step >= stages.campaign;
-  const complete = step === stages.complete && pinPhase === 'settled';
+  const playing = step < stages.complete;
+  const canStop = autoPlay || playing;
+  const shouldAdvance = motionAllowed && (autoPlay ? inView : playing);
   const writing =
     step === stages.bookingMessage
       ? bookingRequest
@@ -215,38 +228,64 @@ export function WorkspaceDemo() {
         : undefined;
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setStep(stages.complete);
-      setPinPhase('settled');
-      return;
+    const motionPreference = window.matchMedia(reducedMotionQuery);
+    setMotionAllowed(!motionPreference.matches);
+
+    function updateMotionPreference({ matches }: MediaQueryListEvent) {
+      setMotionAllowed(!matches);
+      if (matches) {
+        setInView(false);
+        setStep(stages.preview);
+        setPinPhase('settled');
+      }
     }
 
+    motionPreference.addEventListener('change', updateMotionPreference);
+    return () =>
+      motionPreference.removeEventListener('change', updateMotionPreference);
+  }, []);
+
+  useEffect(() => {
     const element = frame.current;
-    if (!element) return;
+    if (!motionAllowed || !autoPlay || !element) return;
+
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        setStarted(entry.intersectionRatio >= 0.2);
-      },
+      ([entry]) => setInView(entry.intersectionRatio >= 0.2),
       { rootMargin: '0px 0px -25% 0px', threshold: 0.2 }
     );
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [autoPlay, motionAllowed]);
 
   const pinBookings = useCallback(() => {
     setPinPhase((phase) => (phase === 'idle' ? 'pressing' : phase));
   }, []);
 
-  const replay = useCallback(() => {
+  const startPlayback = useCallback(() => {
+    setCharacters(0);
     setPinPhase('idle');
     setStep(stages.bookingMessage);
   }, []);
 
+  function togglePlayback() {
+    if (canStop) {
+      setAutoPlay(false);
+      setStep(stages.preview);
+      setPinPhase('settled');
+    } else if (!window.matchMedia(reducedMotionQuery).matches) {
+      startPlayback();
+    }
+  }
+
   useEffect(() => {
-    if (!started) return;
-    if (step === stages.complete) {
-      if (!complete) return;
-      const timer = window.setTimeout(replay, 6500);
+    if (!shouldAdvance) return;
+    if (step >= stages.complete) {
+      // Restarting would remove the Pin button from the document.
+      if (pinHasFocus) return;
+      const timer = window.setTimeout(
+        startPlayback,
+        step === stages.preview ? 0 : loopDelay
+      );
       return () => window.clearTimeout(timer);
     }
     if (step === stages.calendar && pinPhase !== 'settled') {
@@ -275,13 +314,13 @@ export function WorkspaceDemo() {
     );
     return () => window.clearTimeout(timer);
   }, [
-    pinBookings,
-    pinPhase,
-    replay,
-    complete,
-    started,
-    step,
     characters,
+    pinBookings,
+    pinHasFocus,
+    pinPhase,
+    shouldAdvance,
+    startPlayback,
+    step,
     writing,
   ]);
 
@@ -305,11 +344,9 @@ export function WorkspaceDemo() {
       pinOrigin.current = bookingsCard.current?.getBoundingClientRect() ?? null;
       return;
     }
-    if (
-      pinPhase !== 'flying' ||
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    )
+    if (pinPhase !== 'flying' || window.matchMedia(reducedMotionQuery).matches) {
       return;
+    }
     const origin = pinOrigin.current;
     const destination = pinnedCard.current;
     const clone = flyingCard.current;
@@ -346,9 +383,39 @@ export function WorkspaceDemo() {
   return (
     <section
       id={sections.example}
-      aria-label="Workspace demo"
+      aria-labelledby={demoHeadingId}
       className="bg-ink px-3 py-16 sm:px-10 lg:py-24"
     >
+      <h2 id={demoHeadingId} className="sr-only">
+        Workspace demo
+      </h2>
+      {motionAllowed && (
+        <div className="relative mx-auto max-w-3xl motion-reduce:hidden">
+          <button
+            type="button"
+            onClick={togglePlayback}
+            className="absolute right-0 bottom-3 inline-flex min-h-8 items-center gap-1.5 rounded-full border border-dark-rule px-3 text-sm font-medium text-paper transition-colors hover:border-paper"
+          >
+            <svg
+              aria-hidden="true"
+              className="size-4 shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {canStop ? (
+                <rect x="6" y="6" width="12" height="12" rx="1" />
+              ) : (
+                <path d="M4 11a8 8 0 1 1 2.3 6.7M4 5v6h6" />
+              )}
+            </svg>
+            {canStop ? 'Stop demo' : 'Replay demo'}
+          </button>
+        </div>
+      )}
       <div
         ref={frame}
         className="relative mx-auto grid max-w-3xl overflow-hidden rounded-lg sm:rounded-xl border border-dark-rule bg-paper"
@@ -375,7 +442,11 @@ export function WorkspaceDemo() {
             </div>
           </aside>
 
-          <ol aria-label="Conversation" className={`min-w-0 ${threadSpacing}`}>
+          <ol
+            role="list"
+            aria-label="Conversation"
+            className={`min-w-0 ${threadSpacing}`}
+          >
             <li>
               <RequestMessage
                 text={bookingRequest}
@@ -391,6 +462,9 @@ export function WorkspaceDemo() {
                     type="button"
                     aria-label={`${pinned ? 'Pinned' : 'Pin'} ${bookingTitle}`}
                     aria-disabled={pinned || pressingPin}
+                    tabIndex={pinned || pressingPin ? -1 : undefined}
+                    onFocus={() => setPinHasFocus(true)}
+                    onBlur={() => setPinHasFocus(false)}
                     onClick={pinBookings}
                     className={`min-h-8 rounded px-2 text-xs font-medium transition-[scale,background-color,box-shadow] duration-150 motion-reduce:transition-none ${pressingPin ? 'scale-90 bg-sunflower ring-4 ring-sunflower/35' : pinned ? 'text-muted' : 'underline decoration-rule underline-offset-4 hover:decoration-ink'}`}
                   >
@@ -427,29 +501,6 @@ export function WorkspaceDemo() {
           <BookingsCard />
         </div>
       </div>
-      {complete && (
-        <div className="relative mx-auto max-w-3xl">
-          <button
-            type="button"
-            onClick={replay}
-            className="absolute top-3 right-0 inline-flex min-h-8 items-center gap-1.5 rounded-full border border-dark-rule px-3 text-sm font-medium text-paper transition-colors hover:border-paper motion-reduce:hidden"
-          >
-            <svg
-              aria-hidden="true"
-              className="size-4 shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M4 11a8 8 0 1 1 2.3 6.7M4 5v6h6" />
-            </svg>
-            Replay
-          </button>
-        </div>
-      )}
     </section>
   );
 }
