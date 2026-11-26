@@ -4,7 +4,7 @@ Your app owns storage for chat messages and pins. If you haven’t connected you
 
 ## Save a message
 
-Use the server-side [`onMessageUpdate` callback](../README.md#save-chat-history-with-onmessageupdate) to save the complete `IDIChatMessage`. Insert or update by message ID so editing or closing a component updates the existing message instead of creating a duplicate.
+Use the server-side [`onMessageUpdate` callback](../README.md#save-chat-history-with-onmessageupdate) to save the complete `IDIChatMessage`, including its original ISO 8601 creation time at `message.metadata.timestamp`. Insert or update by message ID so editing or closing a component updates the existing message instead of creating a duplicate.
 
 Return the database write promise from `onMessageUpdate` if IDI should wait for storage. This makes a new user message wait for its write before generation starts, and a component update wait for its write before the endpoint acknowledges it.
 

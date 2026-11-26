@@ -19,21 +19,42 @@ The endpoint passes the message to [`onMessageUpdate`](../README.md#save-chat-hi
 
 ## Message timestamps
 
-Every message has a top-level `timestamp` with its ISO 8601 creation time. Both POST bodies, `onMessageUpdate`, `onFinish`, and `initialMessages` use the same field. For example:
+Every message carries its ISO 8601 creation time at `message.metadata.timestamp`.
+
+Generation request:
 
 ```json
 {
   "messages": [{
     "id": "user-1",
     "role": "user",
-    "timestamp": "2026-04-01T09:00:00Z",
+    "metadata": { "timestamp": "2026-04-01T09:00:00Z" },
     "parts": [{ "type": "text", "text": "Show me the tasks for today." }]
   }],
   "componentMap": {}
 }
 ```
 
-Keep the original `message.timestamp` when saving messages. The model receives the creation time so it can interpret phrases like “next week.”
+Component update request (the user changes the week in an open selector):
+
+```json
+{
+  "message": {
+    "id": "assistant-1",
+    "role": "assistant",
+    "metadata": { "timestamp": "2026-04-01T09:00:01Z" },
+    "parts": [{
+      "type": "tool-selectWeek",
+      "toolCallId": "call-1",
+      "state": "output-available",
+      "input": { "weekOf": "2026-04-06" },
+      "toolMetadata": { "componentInputState": { "weekOf": "2026-04-13" } }
+    }]
+  }
+}
+```
+
+Preserve the original creation time when saving updates. The model receives it so it can interpret phrases like “next week.”
 
 The browser timestamps user messages and components opened directly by the app. The server timestamps new assistant replies when they start. Continuing an existing assistant message keeps its original timestamp.
 

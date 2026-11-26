@@ -104,9 +104,9 @@ Add `instructions` to give the assistant a voice or app-specific guidance. IDI a
 
 #### Save chat history with `onMessageUpdate`
 
-IDI calls `onMessageUpdate` when it receives a new user message, when the assistant finishes responding, and when the user edits or closes a component. Each call gives the complete message, including its ISO 8601 creation time as `message.timestamp`.
+IDI calls `onMessageUpdate` when it receives a new user message, when the assistant finishes responding, and when the user edits or closes a component. Each call gives the complete message, including its ISO 8601 creation time at `message.metadata.timestamp`.
 
-Use the message ID to insert or update the record in your app’s storage, and keep the original `timestamp` when restoring saved messages as `initialMessages`. If you omit the callback, chat still works, but messages cannot be restored across page reloads.
+Use the message ID to insert or update the record in your app’s storage, and preserve `message.metadata.timestamp` when restoring saved messages as `initialMessages`. If you omit the callback, chat still works, but messages cannot be restored across page reloads.
 
 ### 2. Create an IDI component
 
