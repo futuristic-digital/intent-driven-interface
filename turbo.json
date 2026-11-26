@@ -4,6 +4,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/README.md", "$TURBO_ROOT$/LICENSE", "$TURBO_ROOT$/docs/**"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", "build/**"],
       "env": ["NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN"]
     },

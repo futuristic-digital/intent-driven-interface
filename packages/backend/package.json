@@ -1,6 +1,6 @@
 {
   "name": "@intent-driven-interface/backend",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "license": "MIT",
   "homepage": "https://github.com/futuristic-digital/intent-driven-interface#set-up-idi",
   "type": "module",
@@ -27,7 +27,7 @@
     }
   },
   "scripts": {
-    "build": "npm run clean && tsc",
+    "build": "npm run clean && tsc && cp -R ../../README.md ../../LICENSE ../../docs dist/",
     "dev": "tsc --watch --preserveWatchOutput",
     "clean": "rm -rf dist",
     "prepack": "turbo run build --filter=@intent-driven-interface/backend",
