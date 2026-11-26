@@ -1,7 +1,8 @@
 {
   "name": "@intent-driven-interface/frontend",
-  "version": "0.1.1",
+  "version": "0.2.0w",
   "license": "MIT",
+  "homepage": "https://github.com/futuristic-digital/intent-driven-interface#set-up-idi",
   "type": "module",
   "publishConfig": {
     "access": "public"
@@ -17,7 +18,7 @@
     }
   },
   "scripts": {
-    "build": "npm run clean && tsc",
+    "build": "npm run clean && tsc && cp -R ../../README.md ../../LICENSE ../../docs dist/",
     "dev": "tsc --watch --preserveWatchOutput",
     "clean": "rm -rf dist",
     "prepack": "turbo run build --filter=@intent-driven-interface/frontend",
@@ -29,7 +30,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.177",
-    "@intent-driven-interface/backend": "^0.1.1",
+    "@intent-driven-interface/backend": "^0.2.0",
     "ai": "^7.0.173",
     "zod": "^4.6.7"
   },

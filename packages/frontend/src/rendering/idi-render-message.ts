@@ -1,3 +1,4 @@
+import { type IDIChatMessage } from '@intent-driven-interface/backend/api-contracts';
 import {
   type ReasoningUIPart,
   type StepStartUIPart,
@@ -8,17 +9,15 @@ import {
 import { type ComponentMap } from '../component-map/define-component-map.js';
 import {
   type ComponentRenderProps,
-  type ComponentCallInput,
   type ComponentInputOf,
   type ComponentToolState,
 } from '../component-map/define-idi-component.js';
 
-/** IDI messages used in the frontend and sent to the IDI backend. */
-export type IDIMessage<COMPONENT_MAP extends ComponentMap> = {
-  id: string;
-  role: 'system' | 'user' | 'assistant';
-  /** ISO timestamp from message metadata; empty string if missing. */
-  timestamp: string;
+/** Message with renderable parts for the host's chat UI. */
+export type IDIRenderMessage<COMPONENT_MAP extends ComponentMap> = Pick<
+  IDIChatMessage,
+  'id' | 'role' | 'metadata'
+> & {
   parts: Array<
     | StepStartUIPart
     | ReasoningUIPart
@@ -37,12 +36,14 @@ export type ComponentRenderUIPart<
   type: 'render-component';
   componentId: K;
   toolState: ComponentToolState;
-  /** Explicit lifecycle status, independent of SDK output availability. */
-  isClosed: boolean;
+  /** Render the live view when true and the summary otherwise, independent of SDK tool state. */
+  isLive: boolean;
   componentProps: ComponentRenderProps<COMPONENT_MAP[K]>;
-  /** Original input and optional user state for host restoration and pinning. */
-  inputSnapshot: ComponentCallInput<ComponentInputOf<COMPONENT_MAP[K]>>;
-  /** Final output is available to summaries after closure, never to the live view. */
+  /** Current input: the full replacement if edited, otherwise the initial input. */
+  componentInput: ComponentInputOf<COMPONENT_MAP[K]>;
+  /** Original input for this invocation, unchanged by edits. */
+  componentInputInitial: ComponentInputOf<COMPONENT_MAP[K]>;
+  /** Draft while open; finalized output once closed. */
   componentOutput?: unknown;
   _toolCall: Omit<UIToolInvocation<COMPONENT_MAP[K]>, 'input'>;
 } & COMPONENT_MAP[K];

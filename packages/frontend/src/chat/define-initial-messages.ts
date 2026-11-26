@@ -1,9 +1,8 @@
+import { type IDIChatMessage } from '@intent-driven-interface/backend/api-contracts';
 import { type TextUIPart } from 'ai';
 
-import { type AiSdkMessage } from './ai-sdk-message.format.js';
-
 /**
- * Builds static seed messages in the AI SDK wire format used by `useIDI`.
+ * Builds static seed messages for `useIDI`.
  *
  * Each entry becomes a single text part with a fresh ISO `metadata.timestamp`.
  *
@@ -15,7 +14,7 @@ export const defineInitialMessages = (
     role: 'system' | 'user' | 'assistant';
     text: string;
   }>
-): AiSdkMessage[] =>
+): IDIChatMessage[] =>
   messages.map((message) => {
     const textPart: TextUIPart = { type: 'text', text: message.text };
 

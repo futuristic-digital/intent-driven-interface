@@ -19,8 +19,8 @@ Your app provides the components and controls what data it shares with the model
 
 IDI provides two skills for your coding agent:
 
-- [`idi-setup`](packages/skill/idi-setup/SKILL.md) helps integrate IDI into your app.
-- [`idi-components`](packages/skill/idi-components/SKILL.md) helps build the React components IDI opens.
+- `idi-setup` helps integrate IDI into your app.
+- `idi-components` helps build the React components IDI opens.
 
 From the directory containing your app’s `package.json`, install the skills package:
 
@@ -250,8 +250,8 @@ Reopening adds a new instance at the end of the chat without asking the model. T
 ## Component lifecycle
 
 1. **Open.** Only the last part of the latest message can be a live, interactive component. The model can open a component by ending its reply with a call to it, or your app can open one directly with `openComponent`. Render the live view when `part.isLive` is `true` and its summary otherwise.
-2. **Edit.** `part.componentInput` is the current input. It starts as the original input, and `setComponentInput` replaces it. `part.componentInputInitial` always keeps the original value. If the component defines an `outputSchema`, use `setComponentOutput` to save a draft result.
-3. **Close.** Call `closeComponent()` to use the draft as the final result, or pass a new result with `closeComponent({ setComponentOutput: output })`.
+2. **Edit.** `setComponentInput` replaces the whole current input (`part.componentInput`) rather than merging fields. `part.componentInputInitial` keeps the original value. If the component defines an `outputSchema`, use `setComponentOutput` to edit the draft or `setComponentOutput(undefined)` to clear it. Both setters accept a value or an updater function; neither starts a model turn.
+3. **Close.** Call `closeComponent()` to use the draft as the final result, or pass a new result with `closeComponent({ setComponentOutput: output })`. If the server doesn’t acknowledge the update, the promise rejects, the component stays open with its draft intact, and no follow-up turn starts.
 4. **Show the summary.** `componentSummary` receives the current input and optional final output. If you define an `outputSummary`, render it alongside the component summary. `part.componentOutput` holds the draft while the component is open and the final output once it closes.
 
 An explicit `closeComponent()` normally starts another model turn after acknowledgment, unless it [returns to the component that opened it](docs/follow-up-components.md#open-a-component-from-another-component). Sending a new message or opening another component also closes the current view, but that automatic close doesn’t request a separate follow-up. The model sees the original input in the tool call, and the result contains `output` (the final outcome or `null`) plus `inputOverride` if the input changed. To close the component without starting another model turn, call `closeComponent({ agentFollowUp: false })`.

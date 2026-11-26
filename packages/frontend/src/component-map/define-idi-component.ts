@@ -5,7 +5,7 @@ import { type ComponentMap } from './define-component-map.js';
 export type ComponentToolState =
   'input-available' | 'input-streaming' | 'output-available';
 
-/** A complete state replacement or an updater based on the latest saved state. */
+/** A complete state replacement or an updater based on the latest local state. */
 export type ComponentStateUpdate<STATE> = STATE | ((previous: STATE) => STATE);
 
 /** Closing may atomically replace the final output before ending the lifecycle. */
@@ -25,65 +25,51 @@ export type ComponentRuntimeProps<INPUT, OUTPUT> = Pick<
   ComponentSummaryProps<INPUT, OUTPUT>,
   'componentInput'
 > & {
-  setComponentInputState: (update: ComponentStateUpdate<INPUT>) => void;
+  setComponentInput: (update: ComponentStateUpdate<INPUT>) => void;
+  /** Awaits the final message update before closing; if it fails, the draft stays open. */
   closeComponent: (options?: CloseComponentOptions<OUTPUT>) => Promise<void>;
-  useCallComponent: UseCallComponent;
+  useOpenComponent: UseOpenComponent;
 } & ([OUTPUT] extends [undefined]
     ? unknown
     : {
-        componentOutputState: OUTPUT | undefined;
-        setComponentOutputState: (
+        /** Editable output draft, not the finalized result. */
+        componentOutput: OUTPUT | undefined;
+        setComponentOutput: (
           update: ComponentStateUpdate<OUTPUT | undefined>
         ) => void;
       });
 
-/** Host-only restoration snapshot; state is absent until a user changes input. */
-export type ComponentCallInput<INPUT> = {
-  componentInput: INPUT;
-  componentInputState?: INPUT;
-};
-
-/** Restores stored history/pins without exposing snapshots to live components. */
-export type RestoreComponent<COMPONENT_MAP extends ComponentMap> = <
-  K extends Extract<keyof COMPONENT_MAP, string>,
->(
-  componentId: K,
-  snapshot: ComponentCallInput<ComponentInputOf<COMPONENT_MAP[K]>>,
-  options?: CallComponentOptions
-) => void;
-
-/** Options for {@link CallComponent} / `useCallComponent`. */
-export type CallComponentOptions = {
+/** Options for {@link OpenComponent} / `useOpenComponent`. */
+export type OpenComponentOptions = {
   /**
-   * When true (and called from inside a component via `useCallComponent`),
-   * re-append the caller with its original input and latest input state after
-   * the opened component closes.
+   * When opening another component via `useOpenComponent`, set this to true
+   * to reopen this component with its initial input and latest override after
+   * the opened component closes successfully, even if it produces no output.
    */
-  resumeCallerAfterOutput?: boolean;
+  reopenThisComponentOnClose?: boolean;
 };
 
 /**
- * Opens a registered component in the chat as a new assistant tool part.
- * Used by summaries / sidebar pins — does not call the LLM.
+ * Opens a registered component with new input, without calling the LLM.
  */
-export type CallComponent<COMPONENT_MAP extends ComponentMap> = <
+export type OpenComponent<COMPONENT_MAP extends ComponentMap> = <
   K extends Extract<keyof COMPONENT_MAP, string>,
 >(
   componentId: K,
   ...options: IsEmptyObject<ComponentInputOf<COMPONENT_MAP[K]>> extends true
     ? [
         input?: ComponentInputOf<COMPONENT_MAP[K]>,
-        options?: CallComponentOptions,
+        options?: OpenComponentOptions,
       ]
     : [
         input: ComponentInputOf<COMPONENT_MAP[K]>,
-        options?: CallComponentOptions,
+        options?: OpenComponentOptions,
       ]
 ) => void;
 
-type UseCallComponent = <
+type UseOpenComponent = <
   COMPONENT_MAP extends ComponentMap,
->() => CallComponent<COMPONENT_MAP>;
+>() => OpenComponent<COMPONENT_MAP>;
 
 export type ComponentAsTool<
   INPUT extends object,
@@ -104,11 +90,13 @@ export type ComponentAsTool<
    * actions have completed.
    */
   description?: string;
+  /** When true, prevents the agent from opening this component without affecting client opens. */
+  disableAgentOpen?: boolean;
   /**
-   * When true, omits this component from the backend agent tool list; only
-   * callable via `callComponent` from another component.
+   * When true, `useIDI().openComponent()` logs an error and does nothing.
+   * This does not affect `useOpenComponent()` or agent tools.
    */
-  followUpComponent?: boolean;
+  disableStandaloneOpen?: boolean;
   /**
    * Serializable input the model passes when invoking this tool. Prefer a rich
    * schema: every display choice (labels, IDs, filters, pre-selections) should
@@ -130,8 +118,8 @@ export type ComponentAsTool<
   outputSchema?: ZodType<OUTPUT>;
   /**
    * Full interactive UI shown while this tool part is active in chat.
-   * Receives the latest effective input and editable output state,
-   * state setters, `closeComponent`, and `useCallComponent`.
+   * Receives effective input, draft output, their setters, `closeComponent`,
+   * and `useOpenComponent`.
    */
   component: React.ComponentType<ComponentRuntimeProps<INPUT, OUTPUT>>;
   /** History summaries receive effective input and optional finalized output. */
@@ -155,7 +143,7 @@ export type ComponentDefinition<
     : ComponentAsTool<INPUT, OUTPUT>;
 
 /**
- * Registers a React component as a IDI tool the agent can invoke.
+ * Registers a React component as an IDI tool.
  *
  * Field roles at a glance:
  * - `title` / `description` / `inputSchema` / `inputExamples` — wire-format
@@ -163,8 +151,8 @@ export type ComponentDefinition<
  * - `component` — live interactive UI in chat.
  * - `componentSummary` — chat-history and sidebar pin pill; reflect the
  *   selected input values.
- * - `setComponentInputState` — persists editable input without changing the
- *   original invocation; pins and reopening use the latest state.
+ * - `setComponentInput` — replaces the input override without changing the
+ *   initial invocation.
  * - `outputSchema` — user's final interaction written via `closeComponent`.
  * - `outputSummary` — visual rendering of that output below the summary pill.
  *
@@ -193,13 +181,13 @@ export type ComponentInputOf<
 /** Erased render boundary: schemas validate heterogeneous component payloads at runtime. */
 export type ComponentRenderProps<T> = {
   componentInput: ComponentInputOf<T>;
-  componentOutputState?: unknown;
-  setComponentInputState: (update: ComponentStateUpdate<object>) => void;
-  setComponentOutputState?: (
+  componentOutput?: unknown;
+  setComponentInput: (update: ComponentStateUpdate<object>) => void;
+  setComponentOutput?: (
     update: ComponentStateUpdate<object | undefined>
   ) => void;
   closeComponent: (options?: CloseComponentOptions<object>) => Promise<void>;
-  useCallComponent: UseCallComponent;
+  useOpenComponent: UseOpenComponent;
 };
 
 type IsEmptyObject<T extends object> = keyof T extends never ? true : false;
