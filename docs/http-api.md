@@ -4,12 +4,12 @@
 
 ## Generate a reply
 
-Send `{ messages, componentMap }` to start a model turn. The assistant can reply with text, open a component, or do both.
+Send `{ messages, componentMap }` to start a model turn. A successful response is a `200 OK` stream, not a single JSON message. The assistant can reply with text, open a component, or do both.
 
 - **`messages`** is a non-empty list of conversation messages. It carries the new user message or a finalized component result, along with the conversation context.
 - **`componentMap`** tells the agent which components it can open. It’s keyed by component ID and contains definitions such as descriptions and JSON schemas for inputs and optional outputs, not React components.
 
-When the user closes a component with a result, IDI saves the result and, by default, sends a generation request so the assistant can respond without a new user message. To save the result without asking the assistant to reply, call `closeComponent({ agentFollowUp: false })`.
+Calling `closeComponent()` first sends a [component update](#save-a-component-change). Once the endpoint acknowledges it, IDI normally sends a generation request so the assistant can respond without a new user message. Use `closeComponent({ agentFollowUp: false })` to send only the update without a model turn.
 
 ## Save a component change
 
@@ -19,9 +19,23 @@ The endpoint passes the message to [`onMessageUpdate`](../README.md#save-chat-hi
 
 ## Message timestamps
 
-Read the ISO 8601 creation time as `message.timestamp` in `onMessageUpdate` and on the messages returned by `useIDI`. The model receives it too, so it can interpret phrases like “next week.”
+Every message has a top-level `timestamp` with its ISO 8601 creation time. Both POST bodies, `onMessageUpdate`, `onFinish`, and `initialMessages` use the same field. For example:
 
-The browser timestamps user messages when they’re sent. The server timestamps assistant replies when they start. If your app opens a component directly without asking the model, the browser timestamps that message too.
+```json
+{
+  "messages": [{
+    "id": "user-1",
+    "role": "user",
+    "timestamp": "2026-04-01T09:00:00Z",
+    "parts": [{ "type": "text", "text": "Show me the tasks for today." }]
+  }],
+  "componentMap": {}
+}
+```
+
+Keep the original `message.timestamp` when saving messages. The model receives the creation time so it can interpret phrases like “next week.”
+
+The browser timestamps user messages and components opened directly by the app. The server timestamps new assistant replies when they start. Continuing an existing assistant message keeps its original timestamp.
 
 ## HTTP Error codes
 

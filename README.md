@@ -10,46 +10,55 @@ Your app provides the components and controls what data it shares with the model
 
 ---
 
+## Set up IDI
+
+- **[Set up with a coding agent](#add-skills-to-your-coding-agent).** Register the IDI skills, then ask your agent to integrate IDI into your app.
+- **[Set up manually](#manual-setup).** Connect a server endpoint, register a React component, and render it in chat.
+
 ## Add skills to your coding agent
 
-IDI skills work with any coding agent that supports the [Agent Skills standard](https://agentskills.io/), including Codex, Claude Code, Cursor, GitHub Copilot, Gemini CLI, OpenCode, or Cline.
+IDI provides two skills for your coding agent:
 
-The `@intent-driven-interface/skill` dependency provides two skills:
+- [`idi-setup`](packages/skill/idi-setup/SKILL.md) helps integrate IDI into your app.
+- [`idi-components`](packages/skill/idi-components/SKILL.md) helps build the React components IDI opens.
 
-- [`idi-setup`](packages/skill/idi-setup/SKILL.md): Connect IDI to your app and decide who can access it and what to persist.
-- [`idi-components`](packages/skill/idi-components/SKILL.md): Create and maintain the React components IDI opens.
-
-Install the package and register both skills with your coding agent:
+From the directory containing your app’s `package.json`, install the skills package:
 
 ```sh
 npm install --save-dev @intent-driven-interface/skill
+```
+
+Then register both skills with the command for your coding agent:
+
+**Codex, Cursor, Gemini CLI, OpenCode, and other agents that read `.agents/skills/`:**
+
+```sh
 npx @intent-driven-interface/skill add-skills
 ```
 
-Run these commands from your app's directory containing `package.json`.
-
-Registration creates project-local symlinks to both skills in `node_modules`. Omit `--agent` to use `.agents/skills/`, or choose a destination explicitly:
-
-- `--agent default` for the shared `.agents/skills/` directory (used by Codex, Cursor, Gemini CLI, OpenCode, and others)
-- `--agent claude` for Claude Code (`.claude/skills/`)
-- `--agent github` for GitHub Copilot (`.github/skills/`)
-- `--agent cline` for Cline (`.cline/skills/`)
-
-To register both skills in multiple directories at once, separate the names with commas:
+**Claude Code:**
 
 ```sh
-npx @intent-driven-interface/skill add-skills --agent default, claude, github
+npx @intent-driven-interface/skill add-skills --agent claude
 ```
 
-*You should commit the symlinks so teammates only need to install dependencies, including dev dependencies. Dependency updates also update the skills. If your agent doesn't see the skills, check that each `SKILL.md` is readable through its symlink, then restart the agent session. Windows may require Developer Mode or elevated permissions for symlinks.*
+**GitHub Copilot:**
+
+```sh
+npx @intent-driven-interface/skill add-skills --agent github
+```
+
+**Cline:**
+
+```sh
+npx @intent-driven-interface/skill add-skills --agent cline
+```
 
 ---
 
-## Set up IDI
+## Manual setup
 
-**Your coding agent can set up IDI for you.** [Add skills to your coding agent](#add-skills-to-your-coding-agent), then ask it to integrate IDI into your app.
-
-To set up IDI manually, use Node.js 22+ and React 19.2.4+ and install the IDI packages:
+Use Node.js 22+ and React 19.2.4+ and install the IDI packages:
 
 ```sh
 npm install @intent-driven-interface/frontend @intent-driven-interface/backend react@^19.2.4
@@ -82,23 +91,22 @@ export async function POST(request: Request): Promise<Response> {
 
 #### Choose a `model`
 
-**IDI requires a configured [AI SDK](https://ai-sdk.dev) model; we recommend to just configure as simply as the example above.**
+IDI requires an [AI SDK](https://ai-sdk.dev) model. The example uses [Vercel AI Gateway](https://vercel.com/ai-gateway). To run it, [create a Gateway API key](https://vercel.com/docs/ai-gateway/authentication-and-byok/api-keys) and set `AI_GATEWAY_API_KEY` on your server.
 
 **IDI doesn’t need a frontier model.** Its main job is to pick a component from the list your app registers and fill in its inputs, not build a UI from scratch. Prefer a small, fast model that makes reliable tool calls and keeps replies brief. [`gpt-oss-20b`](https://vercel.com/ai-gateway/models/openai/gpt-oss-20b) is our top pick for this job: it’s fast, inexpensive and well suited to a focused task. It’s open-weight: you can self-host it, or you can run it locally on a midrange machine with about 16 GB of memory available to the model.
 
-The example above uses it through [Vercel AI Gateway](https://vercel.com/ai-gateway). To run the example, register to Vercel and [create a Gateway API key](https://vercel.com/docs/ai-gateway/authentication-and-byok/api-keys) and set it as the `AI_GATEWAY_API_KEY` environment variable on your server.
 
 To use another provider or a locally hosted model, pass its AI SDK model instance as `model`. Set optional generation settings such as `temperature`, `reasoning`, `maxOutputTokens`, and `providerOptions` alongside `model`.
 
 #### Customize the assistant with `instructions`
 
-Add `instructions` to give the assistant a voice or app-specific guidance. IDI appends them to its built-in instructions. The model receives timestamps for user and assistant messages, so it can interpret relative dates in the conversation, such as “Show me next week’s events”.
+Add `instructions` to give the assistant a voice or app-specific guidance. IDI appends them to its built-in instructions.
 
 #### Save chat history with `onMessageUpdate`
 
-IDI calls `onMessageUpdate` when it receives a new user message, when the assistant finishes responding, and when the user edits or closes a component. Each call gives the complete message, including its creation time as `message.timestamp`.
+IDI calls `onMessageUpdate` when it receives a new user message, when the assistant finishes responding, and when the user edits or closes a component. Each call gives the complete message, including its ISO 8601 creation time as `message.timestamp`.
 
-Use the message ID to insert or update the record in your app’s storage. If you omit the callback, chat still works, but messages cannot be restored across page reloads.
+Use the message ID to insert or update the record in your app’s storage, and keep the original `timestamp` when restoring saved messages as `initialMessages`. If you omit the callback, chat still works, but messages cannot be restored across page reloads.
 
 ### 2. Create an IDI component
 
@@ -153,7 +161,7 @@ Call `useIDI` inside your React chat component. It returns `messages` to render,
 - Set `backend.url` to your `POST` endpoint (`/api/idi` in this example).
 - Pass the [component map from step 3](#3-create-the-component-map) to `useIDI`.
 - Render the live component while it’s open and its summary when `part.isClosed` is `true`.
-- Show a loading indicator while `status` is `submitted` (new user message is just sent) or `streaming` (assistant message is composing and streaming).
+- Show a loading indicator while waiting for the reply (`submitted`) or receiving it (`streaming`).
 
 ```tsx
 'use client';
@@ -162,7 +170,7 @@ import { useIDI } from '@intent-driven-interface/frontend';
 import { components } from './components';
 
 export function Chat() {
-  const { messages, sendMessage, status, openComponent } = useIDI({
+  const { messages, sendMessage, status } = useIDI({
     backend: { url: '/api/idi' },
     components,
   });
@@ -173,46 +181,30 @@ export function Chat() {
         {messages.map((message) => (
           <li key={message.id} className={message.role === 'user' ? 'right' : 'left'}>
             {message.parts.map((part, index) => {
-              // Text message
               if (part.type === 'text') return part.text;
+              if (part.type !== 'render-component') return null;
 
-              if (part.type === 'render-component') {
-                // Component is live (last message in the chat flow): render the component
-                if (!part.isClosed) return <part.component key={index} {...part.componentProps} />;
+              // Component is live and interactive
+              if (!part.isClosed) return <part.component key={index} {...part.componentProps} />;
 
-                // Component is closed (an entry in the chat history): show a compact summary inside a reopen button
-                return (
-                  <div key={index}>
-                    <button
-                      type="button"
-                      aria-label={`Reopen '${components[part.componentId].title}' component`}
-                      disabled={status === 'submitted' || status === 'streaming'}
-                      onClick={() =>
-                        openComponent(
-                          part.componentId,
-                          part.componentInput.override ?? part.componentInput.initial
-                        )
-                      }
-                    >
-                      <part.componentSummary {...part.componentProps} />
-                    </button>
-                  </div>
-                );
-              }
-
-              // only text and component render supported in this example
-              return null
+              // Component is an entry in the chat history, show a compact summary
+              const output = part.outputSchema?.safeParse(part.componentOutput);
+              const summaryProps = {
+                componentInput: part.componentProps.componentInput,
+                componentOutput: output?.success ? output.data : undefined,
+              };
+              return <part.componentSummary key={index} {...summaryProps} />;
             })}
           </li>
         ))}
       </ul>
 
-      {/* Loading */}
+
       {(status === 'submitted' || status === 'streaming') && (
         <p role="status">Responding…</p>
       )}
 
-      {/* Send new message (ask for a component) */}
+
       <form action={(data) => sendMessage(String(data.get('message')))}>
         <label>
           Message <input name="message" required />
@@ -226,18 +218,43 @@ export function Chat() {
 
 #### Reopen a component
 
-The summary button opens a new instance of the same component at the end of the conversation without asking the model. The original summary stays in place. The new instance starts with the effective input (the override if present, otherwise the original input). For example, if the user changes the month from April to May, the original instance keeps April as initial and May as override. Reopening the component uses May as initial for the new instance. No override or output carries over.
+To let users reopen a closed component, take `openComponent` from the same `useIDI` hook. Show this button beside the summary. If [`disableStandaloneOpen`](docs/follow-up-components.md#control-how-components-open) is set, show just the summary.
+
+```tsx
+...
+
+const { messages, sendMessage, status, openComponent } = useIDI({
+  backend: { url: '/api/idi' },
+  components,
+});
+
+...
+  
+{!part.disableStandaloneOpen && (
+  <button
+    type="button"
+    disabled={status === 'submitted' || status === 'streaming'}
+    onClick={() => openComponent(part.componentId, part.componentInput.override ?? part.componentInput.initial)}
+  >
+    Reopen {part.title ?? part.componentId}
+  </button>
+)}
+
+...
+```
+
+Reopening adds a new instance at the end of the chat without asking the model. The original summary stays in place. If the user changed the month from April to May, the new instance starts with May as its initial input. No override or output carries over.
 
 ---
 
 ## Component lifecycle
 
-1. **Open.** A component opens for interaction only if the model ends its reply with a call to that component and the reply is still the latest message in the conversation. Use `part.isClosed` to decide whether to render `part.component` or `part.componentSummary`. A new message or an explicit close by the user sets `part.isClosed` to `true`. 
+1. **Open.** Only the last part of the latest message can be a live, interactive component. The model can open a component by ending its reply with a call to it, or your app can open one directly with the `openComponent`. Use `part.isClosed` to choose between the live view and its summary.
 2. **Edit.** `componentInput` has two keys: `initial` is the original input, and `override` holds any edits made while the component is open. `setComponentInput` updates only `override`, so the model can distinguish the input it originally sent in response to the user’s request from what the user changed during the live interaction. If the component defines an `outputSchema`, use `setComponentOutput` to save a draft result.
-3. **Close.** Call `closeComponent()` to finalize the draft, or `closeComponent({ setComponentOutput: output })` to supply a result as you close. If the server can’t save the final result, the component stays open and keeps the draft intact. Handle the rejection so the user can retry. Any model follow-up starts only after the save succeeds.
+3. **Close.** Call `closeComponent()` to use the draft as the final result, or pass a new result with `closeComponent({ setComponentOutput: output })`.
 4. **Show the summary.** `componentSummary` receives the current input and optional final output. If you define an `outputSummary`, render it alongside the component summary. `part.componentOutput` holds the draft while the component is open and the final output once it closes.
 
-Closing normally starts another model turn. The model sees the original input in the tool call, and the result contains `output` (the final outcome or `null`) plus `inputOverride` if the input changed. To close the component without starting another model turn, call `closeComponent({ agentFollowUp: false })`.
+An explicit `closeComponent()` normally starts another model turn after acknowledgment, unless it [returns to the component that opened it](docs/follow-up-components.md#open-a-component-from-another-component). Sending a new message or opening another component also closes the current view, but that automatic close doesn’t request a separate follow-up. The model sees the original input in the tool call, and the result contains `output` (the final outcome or `null`) plus `inputOverride` if the input changed. To close the component without starting another model turn, call `closeComponent({ agentFollowUp: false })`.
 
 ---
 
