@@ -249,6 +249,17 @@ Closing normally starts another model turn. The model sees the original input in
 
 ---
 
+## Roadmap
+
+1. **Context handling.** Design a context management system that selects relevant past messages and additional context from the host app, prioritizing what the model needs for each request within its context budget.
+2. **Native offline mode.** Add built-in IDI support for running inference, accessing chat history, and managing pinned views entirely on-device after initial setup.
+3. **Ready-to-use React components for IDI chat.** Ship animated transitions to compact cards, a virtualized chat history that preserves scroll position, and a sidebar for pinned views.
+4. **Component migrations.** Version component input schemas so host apps can migrate saved inputs when reopening a component from chat history. Leave the original entry unchanged, and mark the component as unavailable if its inputs can’t be migrated.
+5. **Component prefiltering.** Use vector search to rank only the components the host app makes available for the request by relevance to the prompt and conversation context. Send a bounded shortlist to the LLM alongside the prompt and context, so IDI can support catalogs with thousands of components without sending the full list on every request.
+6. **Suggested follow-up messages.** Suggest what the user is most likely to say or ask next based on the conversation.
+
+---
+
 ## License
 
 [MIT](LICENSE)
