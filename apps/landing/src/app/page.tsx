@@ -62,6 +62,7 @@ function DocsLink({ className }: { className: string }) {
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
+        strokeWidth="2"
         aria-hidden="true"
         className="size-5 shrink-0"
       >
@@ -138,18 +139,21 @@ function Hero() {
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
+              strokeWidth="2"
               aria-hidden="true"
               className="size-5 shrink-0 text-sunflower"
             >
               <polygon
-                points="7 21 7 3 19 12 7 21"
+                points="5,22 5,2 20,12"
                 transform="translate(0.25 0.25)"
                 strokeLinecap="square"
+                strokeLinejoin="miter"
+                strokeMiterlimit="10"
               />
             </svg>
             <span>
               Try the live demo{' '}
-              <span aria-hidden="true">↗</span>{' '}
+
               <span className="sr-only">(opens in a new tab)</span>
             </span>
           </a>
@@ -163,7 +167,7 @@ function Hero() {
           width={1400}
           height={1050}
           preload
-          sizes="(min-width: 86rem) 36rem, (min-width: 64rem) calc(-7rem + 50vw), (min-width: 48rem) calc(-5rem + 50vw), 100vw"
+          unoptimized
           className="aspect-4/3 w-full object-cover md:aspect-square xl:aspect-6/5"
         />
       </div>

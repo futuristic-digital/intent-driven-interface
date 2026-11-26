@@ -33,7 +33,7 @@ const characterDelay = 29;
 const componentReadingTime = 1200;
 const pinFlightDuration = 540;
 const calendarCollapseDuration = 500;
-const loopDelay = 6500;
+
 
 const calendarDays = [
   { day: 'Mon', date: 23, time: '9:00 AM', job: 'Boiler service' },
@@ -222,7 +222,7 @@ export function WorkspaceDemo() {
   const compactCalendar = step >= stages.collapsingCalendar;
   const showCampaign = step >= stages.campaign;
   const playing = step < stages.complete;
-  const canStop = autoPlay || playing;
+
   const statusMessage =
     pinRequested && pinPhase === 'settled' && playing
       ? `${bookingTitle} pinned.`
@@ -289,8 +289,8 @@ export function WorkspaceDemo() {
   }, []);
 
   function togglePlayback() {
-    if (canStop) {
-      setAutoPlay(false);
+    setAutoPlay(false);
+    if (playing) {
       setPinRequested(false);
       setStep(stages.preview);
       setPinPhase('settled');
@@ -300,14 +300,11 @@ export function WorkspaceDemo() {
   }
 
   useEffect(() => {
-    if (!shouldAdvance) return;
-    if (step >= stages.complete) {
-      // Restarting would remove the Pin button from the document.
+    if (!shouldAdvance || step === stages.complete) return;
+    if (step === stages.preview) {
+      // Starting playback would remove the Pin button from the document.
       if (pinHasFocus) return;
-      const timer = window.setTimeout(
-        startPlayback,
-        step === stages.preview ? 0 : loopDelay
-      );
+      const timer = window.setTimeout(startPlayback, 0);
       return () => window.clearTimeout(timer);
     }
     if (step === stages.calendar && pinPhase !== 'settled') {
@@ -411,14 +408,11 @@ export function WorkspaceDemo() {
       <h2 id={demoHeadingId} className="sr-only">
         Workspace demo
       </h2>
-      <div className="mx-auto mb-3 flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-2">
-        <p className="min-w-0 flex-1 basis-36 text-sm wrap-anywhere text-paper-muted">
-          Scripted demo. No changes are saved.
-        </p>
+      <div className="mx-auto mb-3 flex max-w-3xl justify-end">
         <button
           type="button"
           onClick={togglePlayback}
-          className={`ml-auto inline-flex min-h-8 items-center gap-1.5 rounded-full border border-paper-muted px-3 text-sm font-medium text-paper [--focus-ring:var(--color-paper)] transition-colors hover:border-paper motion-reduce:hidden ${motionAllowed ? '' : 'invisible'}`}
+          className={`inline-flex min-h-8 items-center gap-1.5 rounded-full border border-paper-muted px-3 text-sm font-medium text-paper [--focus-ring:var(--color-paper)] transition-colors hover:border-paper motion-reduce:hidden ${motionAllowed ? '' : 'invisible'}`}
         >
           <svg
             aria-hidden="true"
@@ -426,17 +420,23 @@ export function WorkspaceDemo() {
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+            strokeWidth="2"
+            strokeLinecap="square"
+            strokeLinejoin="miter"
+            strokeMiterlimit="10"
           >
-            {canStop ? (
-              <rect x="6" y="6" width="12" height="12" rx="1" />
-            ) : (
-              <path d="M4 11a8 8 0 1 1 2.3 6.7M4 5v6h6" />
-            )}
+            <g transform="translate(0.25 0.25)">
+              {playing ? (
+                <rect x="2" y="2" width="20" height="20" />
+              ) : (
+                <>
+                  <polyline points="21.034 1.13 21.763 6.927 16.071 5.341" />
+                  <path d="M21.763,6.927A11,11,0,1,0,23,12" strokeLinecap="butt" />
+                </>
+              )}
+            </g>
           </svg>
-          {canStop ? 'Stop demo' : 'Replay demo'}
+          {playing ? 'Stop demo' : 'Replay demo'}
         </button>
       </div>
       <div role="status" className="sr-only">{statusMessage}</div>
