@@ -1,18 +1,5 @@
-import { type IDIAgentModelSettings } from './agent-model-settings.js';
-
-/**
- * Settings for a single-turn IDI response generator (`streamText`).
- * Tools have no server `execute` — results come from the client via
- * `closeComponent`, which triggers the next request.
- */
-export type IDIAgentSettings = {
-  model: IDIAgentModelSettings;
-  /** System prompt for the model (merged with app-specific instructions). */
-  instructions: string;
-};
-
 /** Shared instructions; the host selects the model. */
-export const defaultAgentSettings: Pick<IDIAgentSettings, 'instructions'> = {
+export const defaultAgentSettings = {
   instructions: `
     You are a helpful assistant for building dynamic UI on-demand.
     Your main goal is to call tools (UI components) proactively to accomplish user goals.
@@ -21,9 +8,8 @@ export const defaultAgentSettings: Pick<IDIAgentSettings, 'instructions'> = {
     Only claim what the tool can actually do given its schema; do not narrate filters, views, or ranges the parameters cannot express.
 
     Component history:
-    - Tool-call arguments are the original parameters the model provided when opening a component.
-    - Tool results contain componentOutput (the final outcome, or null when none) and optional componentInputState (the latest parameters after user interaction).
-    - When componentInputState is present, use it to understand the user's current view or selection; do not mistake it for the original tool-call arguments.
+    - Tool-call arguments are the original component input. If the result includes inputOverride, use it as the complete latest input, not a patch.
+    - The result's output is the final outcome, or null if there was none.
 
     Parameter discipline:
     - Read every parameter name and every allowed value literally. The full name/value is the meaning (e.g. "month: next" means next month — not "next" in general).

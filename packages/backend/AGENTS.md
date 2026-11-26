@@ -1,27 +1,27 @@
-Server half of IDI: one LLM turn per request, wire types the frontend posts, and a host-injected persistence boundary. Tools describe UI components; they are not executed here.
+Server half of IDI: one LLM turn per generation request and shared wire contracts.
 
-## Agent skill
+## Agent skills
 
-- Use the `intent-driven-interface` skill for IDI integration and component authoring.
-- If the skill is not available, check the host project's `@intent-driven-interface/skill` dependency and whether `.agents/skills/intent-driven-interface/SKILL.md` (Codex) or `.claude/skills/intent-driven-interface/SKILL.md` (Claude Code) is readable.
-- Report a missing dependency or missing/broken registration and recommend the commands in [Coding-agent setup](README.md#coding-agent-setup). Run setup from the host project, never from this dependency's directory. If already installed, only registration is needed; if `node_modules` is missing, restore dependencies first.
-
+- Use `idi-setup` for IDI integration and configuration and `idi-components` for component authoring.
+- If a skill is unavailable, check the host project's `@intent-driven-interface/skill` dependency and its `<skill-name>/SKILL.md` under `.agents/skills/` (Codex) or `.claude/skills/` (Claude Code).
+- Report a missing dependency or broken registration and recommend [Add skills to your coding agent](https://github.com/futuristic-digital/intent-driven-interface#add-skills-to-your-coding-agent). Run those commands from the host project, not this dependency. If already installed, only registration is needed; if `node_modules` is missing, restore dependencies first.
 
 ## Core rules
 
 - Keep tools without `execute`. Component output is user/UI state closed on the client via `closeComponent`.
-- `./api-contracts` — wire types (`ComponentMapForBackend`, `UIMessageMetadata`, `IDIMessageWire`) safe for client imports.
-- Inject persistence via `IDIAgent` constructor deps (`saveMessages`, `loadMessages`, `loadPinnedComponents`, `pinComponent`). Never import a database client.
-- Optional `scheduleTask` delegates generation saves to the host. Without it, await inbound persistence and return the final save promise from stream `onEnd`.
-- Keep wire operations `load-message-history` and `list-pinned-components` unchanged despite the callback names.
-- Project tool results for model context with optional user input state and final component output; keep tool-call arguments and stored output unchanged.
-- `pin-component` canonicalizes original input and optional input state before persist (sorted keys and explicit `null` preserved; schema string/number distinctions retained), then host `pinComponent`, then returns `{ pinnedComponents }` from `loadPinnedComponents` so clients replace local state from the response (no client-side merge).
+- Define both strict POST shapes in browser-safe `./api-contracts` via `idiRequestBodySchema`: generation `{ messages, componentMap }` with non-empty messages, and update-only `{ message }` with a complete assistant component message. No operation field or separate endpoint. Use `idiMessagesSchema` for host-loaded history, including `[]`, without a current tool map.
+- Keep the ISO 8601 creation time at `message.metadata.timestamp` in both POST bodies, SDK messages, callbacks, and saved history. Read it from there when building model input.
+- Expose `OnMessageUpdate` from the backend and accept `onMessageUpdate?: (message: IDIChatMessage) => void | Promise<void>` only as an `IDIAgent` constructor option. For generation, call it with the newest user message before generation and the complete assistant message at successful stream end, not for tokens or replayed context.
+- Update-only runs no model and returns `204` after the callback completes or as a no-op when omitted; no extra flags. Return `400` for invalid bodies and `500` for callback failure before streaming or on an update-only request.
+- Project tool results for model context with optional `inputOverride` and final `output`; keep tool-call arguments and stored output unchanged.
+- Keep assistant IDs stable across continuations and attach timestamp metadata to the UI message stream.
 - Trim context with `trimMessagesForAgent` before `streamText`; do not invent a separate context window.
 - Log with `@futuristic.digital/logger`: module logger + `logger.child(getTraceContext())` per request path.
-- Hosts choose a model preset or supply a custom SDK model. Do not choose a default provider or read `process.env` here.
+- Hosts supply a configured AI SDK model instance. Do not add model presets, choose a provider, or read `process.env` here.
 
 ## Boundaries
 
 - Never import from `apps/*` or `@intent-driven-interface/frontend`.
 - App-specific system prompts belong in `new IDIAgent({ instructions })`, not in this package's defaults beyond the shared tool-use rules.
-- Authn/authz stays in the host app route.
+- User authentication, chat authorization for both POST shapes, and persistence stay in the host. Bind the callback to the authorized chat per request, never to process-global user state. Do not accept user identifiers in `IDIAgent`.
+- Returning the write promise makes IDI wait. A request-scoped callback can call the runtime's `ctx.waitUntil(promise)` directly and return `void` to detach the write, not the HTTP roundtrip. Acknowledgment doesn't guarantee detached work wrote durably. The host owns detached write ordering, retries, and durability; don't assume promises survive disconnects.

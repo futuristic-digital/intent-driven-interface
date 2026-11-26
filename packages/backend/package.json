@@ -2,6 +2,7 @@
   "name": "@intent-driven-interface/backend",
   "version": "0.1.1",
   "license": "MIT",
+  "homepage": "https://github.com/futuristic-digital/intent-driven-interface#set-up-idi",
   "type": "module",
   "publishConfig": {
     "access": "public"
@@ -19,6 +20,7 @@
       "types": "./dist/api-contracts.d.ts",
       "default": "./dist/api-contracts.js"
     },
+
     "./trim-messages-for-agent": {
       "types": "./dist/trim-messages-for-agent.d.ts",
       "default": "./dist/trim-messages-for-agent.js"
