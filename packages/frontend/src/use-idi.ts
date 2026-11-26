@@ -22,7 +22,7 @@ type UseIDIOptions<COMPONENT_MAP extends ComponentMap> = {
   backend: IDIBackend;
   /** Registry for rendering components and exposing their schemas to the model. */
   components: COMPONENT_MAP;
-  /** Host-loaded history or seed messages. Later changes don't replace chat state. */
+  /** Host-loaded history or seed messages, read when the chat is created. */
   initialMessages?: IDIChatMessage[];
   /** Generation errors only. Failed component updates surface in the returned `error`. */
   onError?: ChatOnErrorCallback;

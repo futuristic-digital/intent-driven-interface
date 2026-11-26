@@ -45,6 +45,7 @@ function ShipmentActionButtons({
         type="button"
         size="sm"
         variant="outline"
+        className="h-auto min-h-8 max-w-full whitespace-normal wrap-anywhere text-left"
         aria-disabled={actionsDisabled}
         onClick={() => {
           if (!actionsDisabled) onViewDetails(shipmentId);
@@ -56,6 +57,7 @@ function ShipmentActionButtons({
         type="button"
         size="sm"
         variant="outline"
+        className="h-auto min-h-8 max-w-full whitespace-normal wrap-anywhere text-left"
         aria-disabled={actionsDisabled}
         onClick={() => {
           if (!actionsDisabled) onUpdateDelivery(shipmentId);
@@ -108,10 +110,8 @@ export function Shipments({
 
       const label = `Shipment ${shipment.id}`;
       const popup = (
-        <div className="text-xs space-y-1 max-w-[220px] text-muted-foreground relative pr-8">
-          <div className="font-semibold text-sm mb-1">
-            {label}
-          </div>
+        <div className="max-w-[220px] space-y-1 wrap-anywhere text-xs text-muted-foreground">
+          <div className="mb-1 pr-8 text-sm font-semibold">{label}</div>
           <div>
             <span className="font-medium">State:</span>{' '}
             {shipment.state.join(', ')}
@@ -268,19 +268,20 @@ export function Shipments({
   );
 }
 
-// Utils
+const shipmentEtaFormatter = new Intl.DateTimeFormat(undefined, {
+  year: 'numeric',
+  month: 'short',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZoneName: 'short',
+});
+
 const formatEta = (isoString: string) => {
   if (!isoString) return 'N/A';
 
   const date = new Date(isoString);
   if (Number.isNaN(date.getTime())) return isoString;
 
-  return new Intl.DateTimeFormat(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  }).format(date);
+  return shipmentEtaFormatter.format(date);
 };

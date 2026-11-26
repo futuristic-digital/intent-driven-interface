@@ -56,16 +56,18 @@ export function ChatInput({
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      if (!e.repeat) void handleSubmit();
+      if (!e.repeat) e.currentTarget.form?.requestSubmit();
     }
   };
 
   const errorMessage =
-    generationFailed || sendFailed
-      ? 'Flowdock couldn’t generate a reply. Try your prompt again.'
-      : updateFailed
-        ? 'Couldn’t save the latest change in chat. Please try again.'
-        : '';
+    sendFailed
+      ? 'Couldn’t send your prompt. Please try again.'
+      : generationFailed
+        ? 'Flowdock couldn’t generate a reply. Try your prompt again.'
+        : updateFailed
+          ? 'Couldn’t save the latest change in chat. Please try again.'
+          : '';
 
   return (
     <div className="max-h-1/2 shrink-0 overflow-y-auto border-t border-border/50 bg-card/50 p-4 pb-2 backdrop-blur-sm">
@@ -75,10 +77,10 @@ export function ChatInput({
         </p>
         {aiAvailable ? (
           <>
-
             <div
+              role="group"
               aria-label="Example prompts"
-              className="mb-3 flex gap-2 overflow-x-auto p-1 sm:flex-wrap"
+              className="mb-3 flex max-h-[min(6rem,15dvh)] flex-wrap gap-2 overflow-y-auto p-1 sm:max-h-none"
             >
               {suggestions.map((suggestion) => (
                 <button
@@ -89,16 +91,23 @@ export function ChatInput({
                     setInput(suggestion);
                     textareaRef.current?.focus();
                   }}
-                  className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/50 bg-secondary/50 px-3 py-1.5 text-left text-xs text-muted-foreground transition-all hover:border-primary/50 hover:bg-primary/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+                  className="flex max-w-full items-center gap-1.5 rounded-full border border-border/50 bg-secondary/50 px-3 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
                 >
                   <Sparkles className="size-3 shrink-0" aria-hidden="true" />
-                  {suggestion}
+                  <span className="min-w-0 wrap-anywhere">{suggestion}</span>
                 </button>
               ))}
             </div>
 
             {/* Input Area */}
-            <div className="relative flex items-end gap-2 rounded-2xl border border-border/50 bg-input/50 p-2 has-[textarea:focus]:border-ring has-[textarea:focus]:ring-2 has-[textarea:focus]:ring-ring">
+            <form
+              aria-label="Chat prompt"
+              className="relative flex items-end gap-2 rounded-2xl border border-muted-foreground bg-input/50 p-2 has-[textarea:focus]:border-ring has-[textarea:focus]:ring-2 has-[textarea:focus]:ring-ring"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleSubmit();
+              }}
+            >
               <textarea
                 ref={textareaRef}
                 value={input}
@@ -106,17 +115,16 @@ export function ChatInput({
                 onKeyDown={handleKeyDown}
                 aria-label="Ask Flowdock"
                 placeholder="Ask about a shipment…"
-                className="max-h-[120px] min-h-[40px] min-w-0 flex-1 resize-none bg-transparent py-2 pl-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                className="max-h-[120px] min-h-[40px] min-w-0 flex-1 resize-none bg-transparent py-2 pl-2 text-base text-foreground placeholder:text-muted-foreground focus:outline-none sm:text-sm"
                 rows={1}
                 maxLength={2_000}
                 readOnly={disabled}
               />
 
               <Button
-                type="button"
+                type="submit"
                 onClick={(event) => {
                   if (event.detail === 0) textareaRef.current?.focus();
-                  void handleSubmit();
                 }}
                 disabled={!input.trim() || disabled}
                 size="icon"
@@ -130,7 +138,7 @@ export function ChatInput({
                 <Send className="h-4 w-4" aria-hidden="true" />
                 <span className="sr-only">Send message</span>
               </Button>
-            </div>
+            </form>
           </>
         ) : (
           <p className="text-sm text-muted-foreground">

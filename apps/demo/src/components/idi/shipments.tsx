@@ -2,6 +2,7 @@ import { defineIDIComponent, schema } from '@intent-driven-interface/frontend';
 import { useCallback, useId, useState, type ReactElement } from 'react';
 import type { ShipmentState } from '../../domain/shipment';
 import { Button } from '../../ui/button';
+import { mapboxAccessToken } from '../../utils/mapbox';
 import { Shipments } from '../shipments';
 import type { componentMap } from './component-map';
 
@@ -25,7 +26,7 @@ const statusLabels: Record<ShipmentState, string> = {
 const displayLabels = { list: 'List', map: 'Map' };
 const maxDispatchNoteLength = 1_000;
 const fieldClassName =
-  'rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  'max-w-full rounded-md border border-muted-foreground bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 function focusShipmentsHeading(heading: HTMLHeadingElement | null) {
   if (heading && document.activeElement === document.body) heading.focus();
@@ -49,11 +50,12 @@ export const showShipments = defineIDIComponent({
   }): ReactElement {
     const id = useId();
     const openComponent = useOpenComponent<typeof componentMap>();
-    const [mapUnavailable, setMapUnavailable] = useState(false);
+    const [mapLoadFailed, setMapLoadFailed] = useState(false);
     const [closing, setClosing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const mapUnavailable = !mapboxAccessToken || mapLoadFailed;
     const displayType = mapUnavailable ? 'list' : componentInput.displayType;
-    const handleMapUnavailable = useCallback(() => setMapUnavailable(true), []);
+    const handleMapUnavailable = useCallback(() => setMapLoadFailed(true), []);
 
     async function closeShipments() {
       if (closing) return;
@@ -133,11 +135,11 @@ export const showShipments = defineIDIComponent({
             ))}
           </div>
         </div>
-        {mapUnavailable && (
-          <p role="status" className="text-sm text-muted-foreground">
-            The map isn’t available. Use the list to view shipments.
-          </p>
-        )}
+        <p role="status" className="text-sm text-muted-foreground empty:m-0">
+          {mapUnavailable
+            ? 'The map isn’t available. Use the list to view shipments.'
+            : ''}
+        </p>
         <Shipments
           displayType={displayType}
           filter={componentInput.filter}
@@ -180,11 +182,9 @@ export const showShipments = defineIDIComponent({
             chat. It won’t change any shipment.
           </p>
         </div>
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
+        <p role="alert" className="text-sm text-destructive empty:m-0">
+          {error}
+        </p>
         <div className="flex justify-end">
           <Button
             type="button"

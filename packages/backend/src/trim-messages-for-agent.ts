@@ -1,12 +1,12 @@
 import { type UIMessage } from 'ai';
 
-/** Default number of recent UI messages kept in agent requests. */
+/** Maximum number of recent UI messages included in model context. */
 export const AGENT_CONTEXT_MAX_MESSAGES = 40;
 
 type MessageWithRole = Pick<UIMessage, 'role'>;
 
 /**
- * Returns the most recent chat messages that should be sent to the agent.
+ * Limits generation context on both the client and the server.
  *
  * UI state can still hold the full thread; this helper only limits what the
  * model sees. Truncation keeps whole messages (never splits parts) by taking

@@ -55,7 +55,7 @@ function BookingsCard({
   return (
     <div
       ref={ref}
-      className={`max-w-full rounded-lg border border-rule bg-paper transition-[width] ease-out motion-reduce:transition-none ${compact ? 'w-36' : 'w-full'}`}
+      className={`max-w-full rounded-lg border border-rule bg-paper wrap-anywhere transition-[width] ease-out motion-reduce:transition-none ${compact ? 'w-36 motion-reduce:w-full' : 'w-full'}`}
       style={{ transitionDuration: `${calendarCollapseDuration}ms` }}
     >
       <div className="px-3 py-2">
@@ -67,30 +67,33 @@ function BookingsCard({
   );
 }
 
-function BookingsCalendar({ collapsed = false }: { collapsed?: boolean }) {
+const BookingsCalendar = memo(function BookingsCalendar({
+  collapsed = false,
+}: {
+  collapsed?: boolean;
+}) {
   return (
     <div
-      inert={collapsed}
-      className={`grid transition-[grid-template-rows] ease-out motion-reduce:transition-none ${collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'}`}
+      className={`grid transition-[grid-template-rows,visibility] ease-out motion-reduce:transition-none ${collapsed ? 'invisible grid-rows-[0fr] motion-reduce:visible motion-reduce:grid-rows-[1fr]' : 'grid-rows-[1fr]'}`}
       style={{ transitionDuration: `${calendarCollapseDuration}ms` }}
     >
       <div className="min-h-0 overflow-hidden">
         {/* Keep the calendar at its expanded width, inside the two card borders. */}
         <ul
           role="list"
-          className="grid w-[calc(100cqw-2px)] gap-2 border-t border-rule p-3 max-sm:divide-y max-sm:divide-rule sm:grid-cols-5 sm:p-4"
+          className="grid w-[calc(100cqw-2px)] gap-2 border-t border-rule p-3 wrap-anywhere @max-lg:divide-y @max-lg:divide-rule @lg:grid-cols-5 @lg:p-4"
         >
           {calendarDays.map(({ day, date, time, job }) => (
             <li
               key={date}
-              className="grid grid-cols-[3.5rem_1fr] items-center gap-2 max-sm:pb-2 max-sm:last:pb-0 sm:block"
+              className="grid items-center gap-2 @max-lg:pb-2 @max-lg:last:pb-0 @min-[14rem]:grid-cols-[3.5rem_minmax(0,1fr)] @lg:block"
             >
               <p className="px-1 text-sm font-medium">
                 {day} <span className="text-muted">{date}</span>
               </p>
-              <div className="rounded border-l-2 border-sunflower bg-ink/5 px-2 py-1.5 max-sm:grid max-sm:grid-cols-[3.65rem_minmax(0,1fr)] max-sm:items-baseline max-sm:gap-x-1 sm:mt-2 sm:min-h-24 sm:px-2.5 sm:py-2">
+              <div className="grid items-baseline gap-x-1 rounded border-l-2 border-sunflower bg-ink/5 px-2 py-1.5 @min-[14rem]:grid-cols-[3.65rem_minmax(0,1fr)] @lg:mt-2 @lg:block @lg:min-h-24 @lg:px-2.5 @lg:py-2">
                 <span className="text-xs text-muted">{time}</span>
-                <p className="text-sm leading-snug font-medium max-sm:text-[0.8125rem]">
+                <p className="text-sm leading-snug font-medium @max-lg:text-[0.8125rem]">
                   {job}
                 </p>
               </div>
@@ -100,17 +103,17 @@ function BookingsCalendar({ collapsed = false }: { collapsed?: boolean }) {
       </div>
     </div>
   );
-}
+});
 
 function CampaignPlanner() {
   return (
-    <div className="rounded-lg border border-rule bg-paper">
+    <div className="@container rounded-lg border border-rule bg-paper wrap-anywhere">
       <div className="border-b border-rule p-4 sm:p-5">
         <h3 className="text-xl font-semibold">{campaignTitle}</h3>
       </div>
       <div className="p-4 text-sm sm:p-5">
-        <dl className="grid gap-3 min-[360px]:grid-cols-2">
-          <div className="min-[360px]:col-span-2">
+        <dl className="grid gap-3 @min-[19rem]:grid-cols-2">
+          <div className="@min-[19rem]:col-span-2">
             <dt className="font-medium">Audience</dt>
             <dd className="mt-1 rounded border border-rule px-3 py-2">
               Customers due for maintenance
@@ -122,7 +125,7 @@ function CampaignPlanner() {
               Email
               <span
                 aria-hidden="true"
-                className="mr-0.5 size-1.5 -translate-y-px rotate-45 border-r border-b border-current"
+                className="mr-0.5 size-1.5 shrink-0 -translate-y-px rotate-45 border-r border-b border-current"
               />
             </dd>
           </div>
@@ -132,7 +135,7 @@ function CampaignPlanner() {
               <time dateTime="2026-11-24">Nov 24, 2026</time>
               <span
                 aria-hidden="true"
-                className="size-3 rounded-xs border border-t-3 border-current"
+                className="size-3 shrink-0 rounded-xs border border-t-3 border-current"
               />
             </dd>
           </div>
@@ -154,7 +157,7 @@ function RequestMessage({
 }) {
   const written = characters === undefined ? text : text.slice(0, characters);
   return (
-    <div className="ml-auto grid w-fit max-w-[92%] rounded-lg border border-rule bg-ink/5 px-4 py-2.5 text-sm sm:text-base">
+    <div className="ml-auto grid w-fit max-w-[92%] rounded-lg border border-rule bg-ink/5 px-4 py-2.5 text-sm wrap-anywhere sm:text-base">
       <span className="sr-only">{text}</span>
       <span aria-hidden="true" className="invisible col-start-1 row-start-1">
         {text}
@@ -211,6 +214,7 @@ export function WorkspaceDemo() {
   const [motionAllowed, setMotionAllowed] = useState(false);
   const [inView, setInView] = useState(false);
   const [pinHasFocus, setPinHasFocus] = useState(false);
+  const [pinRequested, setPinRequested] = useState(false);
 
   const pressingPin = pinPhase === 'pressing';
   const showMobileSidebar = pinPhase === 'flying';
@@ -219,6 +223,16 @@ export function WorkspaceDemo() {
   const showCampaign = step >= stages.campaign;
   const playing = step < stages.complete;
   const canStop = autoPlay || playing;
+  const statusMessage =
+    pinRequested && pinPhase === 'settled' && playing
+      ? `${bookingTitle} pinned.`
+      : autoPlay
+        ? ''
+        : playing
+          ? 'Demo playing.'
+          : step === stages.complete
+            ? 'Demo complete.'
+            : 'Demo stopped.';
   const shouldAdvance = motionAllowed && (autoPlay ? inView : playing);
   const writing =
     step === stages.bookingMessage
@@ -250,8 +264,8 @@ export function WorkspaceDemo() {
     if (!motionAllowed || !autoPlay || !element) return;
 
     const observer = new IntersectionObserver(
-      ([entry]) => setInView(entry.intersectionRatio >= 0.2),
-      { rootMargin: '0px 0px -25% 0px', threshold: 0.2 }
+      ([entry]) => setInView(entry.isIntersecting),
+      { rootMargin: '0px 0px -48px 0px' }
     );
     observer.observe(element);
     return () => observer.disconnect();
@@ -261,8 +275,15 @@ export function WorkspaceDemo() {
     setPinPhase((phase) => (phase === 'idle' ? 'pressing' : phase));
   }, []);
 
+  function requestPin() {
+    if (pinPhase !== 'idle') return;
+    setPinRequested(true);
+    pinBookings();
+  }
+
   const startPlayback = useCallback(() => {
     setCharacters(0);
+    setPinRequested(false);
     setPinPhase('idle');
     setStep(stages.bookingMessage);
   }, []);
@@ -270,6 +291,7 @@ export function WorkspaceDemo() {
   function togglePlayback() {
     if (canStop) {
       setAutoPlay(false);
+      setPinRequested(false);
       setStep(stages.preview);
       setPinPhase('settled');
     } else if (!window.matchMedia(reducedMotionQuery).matches) {
@@ -289,7 +311,7 @@ export function WorkspaceDemo() {
       return () => window.clearTimeout(timer);
     }
     if (step === stages.calendar && pinPhase !== 'settled') {
-      if (pinPhase !== 'idle') return;
+      if (pinPhase !== 'idle' || pinHasFocus) return;
       const timer = window.setTimeout(pinBookings, componentReadingTime);
       return () => window.clearTimeout(timer);
     }
@@ -389,33 +411,35 @@ export function WorkspaceDemo() {
       <h2 id={demoHeadingId} className="sr-only">
         Workspace demo
       </h2>
-      {motionAllowed && (
-        <div className="relative mx-auto max-w-3xl motion-reduce:hidden">
-          <button
-            type="button"
-            onClick={togglePlayback}
-            className="absolute right-0 bottom-3 inline-flex min-h-8 items-center gap-1.5 rounded-full border border-dark-rule px-3 text-sm font-medium text-paper transition-colors hover:border-paper"
+      <div className="mx-auto mb-3 flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-2">
+        <p className="min-w-0 flex-1 basis-36 text-sm wrap-anywhere text-paper-muted">
+          Scripted demo. No changes are saved.
+        </p>
+        <button
+          type="button"
+          onClick={togglePlayback}
+          className={`ml-auto inline-flex min-h-8 items-center gap-1.5 rounded-full border border-paper-muted px-3 text-sm font-medium text-paper [--focus-ring:var(--color-paper)] transition-colors hover:border-paper motion-reduce:hidden ${motionAllowed ? '' : 'invisible'}`}
+        >
+          <svg
+            aria-hidden="true"
+            className="size-4 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <svg
-              aria-hidden="true"
-              className="size-4 shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              {canStop ? (
-                <rect x="6" y="6" width="12" height="12" rx="1" />
-              ) : (
-                <path d="M4 11a8 8 0 1 1 2.3 6.7M4 5v6h6" />
-              )}
-            </svg>
-            {canStop ? 'Stop demo' : 'Replay demo'}
-          </button>
-        </div>
-      )}
+            {canStop ? (
+              <rect x="6" y="6" width="12" height="12" rx="1" />
+            ) : (
+              <path d="M4 11a8 8 0 1 1 2.3 6.7M4 5v6h6" />
+            )}
+          </svg>
+          {canStop ? 'Stop demo' : 'Replay demo'}
+        </button>
+      </div>
+      <div role="status" className="sr-only">{statusMessage}</div>
       <div
         ref={frame}
         className="relative mx-auto grid max-w-3xl overflow-hidden rounded-lg sm:rounded-xl border border-dark-rule bg-paper"
@@ -465,8 +489,8 @@ export function WorkspaceDemo() {
                     tabIndex={pinned || pressingPin ? -1 : undefined}
                     onFocus={() => setPinHasFocus(true)}
                     onBlur={() => setPinHasFocus(false)}
-                    onClick={pinBookings}
-                    className={`min-h-8 rounded px-2 text-xs font-medium transition-[scale,background-color,box-shadow] duration-150 motion-reduce:transition-none ${pressingPin ? 'scale-90 bg-sunflower ring-4 ring-sunflower/35' : pinned ? 'text-muted' : 'underline decoration-rule underline-offset-4 hover:decoration-ink'}`}
+                    onClick={requestPin}
+                    className={`min-h-8 rounded px-2 text-xs font-medium transition-[scale,background-color,box-shadow] duration-150 motion-reduce:transition-none ${pressingPin ? 'scale-90 bg-sunflower ring-4 ring-sunflower/35' : pinned ? 'text-muted' : 'underline decoration-muted underline-offset-4 hover:decoration-ink'}`}
                   >
                     {pinned ? 'Pinned' : 'Pin'}
                   </button>

@@ -51,7 +51,7 @@ export const signOut = defineIDIComponent({
             onClick={() => void finish('cancelled')}
           >
             <X className="size-3.5" aria-hidden="true" />
-            Cancel
+            {pending === 'cancelled' ? 'Cancelling…' : 'Cancel'}
           </Button>
           <Button
             type="button"
@@ -60,7 +60,7 @@ export const signOut = defineIDIComponent({
             onClick={() => void finish('simulated')}
           >
             <LogOut className="size-3.5" aria-hidden="true" />
-            {actionTitle}
+            {pending === 'simulated' ? 'Simulating sign-out…' : actionTitle}
           </Button>
         </div>
       </div>

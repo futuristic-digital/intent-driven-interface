@@ -1,11 +1,10 @@
 import type { OpenComponent } from '@intent-driven-interface/frontend';
 import { Pin } from 'lucide-react';
-import type { Ref } from 'react';
+import { useLayoutEffect, useRef, type Ref } from 'react';
 import { componentMap } from '../components/idi/component-map';
 import type { DemoPinnedComponent } from '../components/idi/pinned-component';
 import { cn } from '../utils/cn';
 import { Button } from './button';
-
 
 /** Pins keep their own invocation inputs, rather than linking to an old message. */
 export function PinnedComponentsPanel({
@@ -29,18 +28,19 @@ export function PinnedComponentsPanel({
   isOpenOnMobile: boolean;
   onClose: () => void;
 }) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useLayoutEffect(() => {
+    if (isOpenOnMobile) headingRef.current?.focus();
+  }, [isOpenOnMobile]);
+
   const availablePins = pinnedComponents.filter(
     (pin) => !componentMap[pin.componentId].disableStandaloneOpen
   );
 
   return (
     <>
-      <button
-        type="button"
-        aria-label="Close workspace"
-        tabIndex={-1}
+      <div
         aria-hidden="true"
-        disabled={!isOpenOnMobile}
         onClick={onClose}
         className={cn(
           'absolute inset-0 z-10 bg-foreground/20 transition-opacity duration-300 motion-reduce:transition-none lg:hidden',
@@ -65,7 +65,13 @@ export function PinnedComponentsPanel({
                 className="size-4 text-muted-foreground"
                 aria-hidden="true"
               />
-              <h2 className="text-sm font-semibold">Pinned components</h2>
+              <h2
+                ref={headingRef}
+                tabIndex={-1}
+                className="text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                Pinned components
+              </h2>
             </div>
             {availablePins.length === 0 ? (
               <p className="text-sm leading-relaxed text-muted-foreground">

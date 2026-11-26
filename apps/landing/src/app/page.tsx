@@ -50,7 +50,7 @@ const navigation = [
 const labelStyle =
   'flex items-center gap-3 font-mono text-xs font-medium tracking-label uppercase';
 const actionStyle =
-  'inline-flex min-h-12 items-center justify-center gap-2.5 px-6 text-base font-medium transition-colors';
+  'inline-flex min-h-12 items-center justify-center gap-2.5 px-6 text-base font-medium transition-[background-color,color]';
 const headerSourceStyle =
   'min-h-11 items-center gap-2 border border-ink px-3.5 py-2 text-sm font-medium transition-colors hover:bg-ink hover:text-paper sm:min-h-0 lg:ml-5';
 const mainContentId = 'main';
@@ -123,9 +123,9 @@ function Hero() {
           </em>
         </h1>
         <p className="mt-6 max-w-md text-lg leading-relaxed text-muted max-md:order-3 md:mt-7 lg:text-xl">
-          Tell the app what you want to do, and the AI shows you the controls
-          you need. You stay in charge and can see what each action will do
-          before you take it.
+          Intent-Driven Interface (IDI) is an open-source framework for apps
+          that respond to requests with React controls. Tell the app what you
+          want to do, see what each action will do, then decide what happens.
         </p>
         <div className="mt-6 grid grid-cols-2 items-center gap-2 max-md:order-4 md:mt-8 md:flex md:flex-wrap md:gap-x-6 md:gap-y-4">
           <a
@@ -147,9 +147,13 @@ function Hero() {
                 strokeLinecap="square"
               />
             </svg>
-            Try the live demo
+            <span>
+              Try the live demo{' '}
+              <span aria-hidden="true">↗</span>{' '}
+              <span className="sr-only">(opens in a new tab)</span>
+            </span>
           </a>
-          <DocsLink className="inline-flex min-h-12 items-center gap-2 font-medium underline decoration-rule underline-offset-5 hover:decoration-ink max-md:min-h-13 max-md:justify-center max-md:border max-md:border-ink max-md:px-2 max-md:text-sm max-md:no-underline" />
+          <DocsLink className="inline-flex min-h-12 items-center gap-2 font-medium underline decoration-muted underline-offset-5 hover:decoration-ink max-md:min-h-13 max-md:justify-center max-md:border max-md:border-ink max-md:px-2 max-md:text-sm max-md:no-underline" />
         </div>
       </div>
       <div className="border border-ink p-1.5 max-md:order-2 max-md:mt-6 max-md:-mr-5 max-md:border-r-0 max-md:bg-paper max-md:pr-0 max-md:shadow-poster-edge max-md:sm:-mr-10 md:mx-1">

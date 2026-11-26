@@ -63,7 +63,7 @@ export function ShipmentPicker({
                 onChange={(event) =>
                   setSelectedShipmentId(event.currentTarget.value)
                 }
-                className="min-h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="min-h-10 w-full min-w-0 rounded-md border border-muted-foreground bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="">Select a shipment</option>
                 {shipments.map(({ id, origin, destination }) => (

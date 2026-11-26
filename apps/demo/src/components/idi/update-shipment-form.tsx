@@ -5,7 +5,7 @@ import type { Shipment, ShipmentState } from '../../domain/shipment';
 
 const SHIPMENT_STATES: ShipmentState[] = ['inTransit', 'delayed', 'delivered'];
 const fieldClassName =
-  'w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  'w-full min-w-0 rounded-md border border-muted-foreground bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 function formatDateTimeLocal(isoString: string): string {
   if (!isoString) return '';
@@ -68,9 +68,13 @@ export function UpdateShipmentForm({
     const nextCarrier = carrier.trim();
     const nextEta = new Date(estimatedDeliveryDate);
     const nextDelayReason = delayReason.trim() || undefined;
-    if (state.length === 0 || !nextCarrier || Number.isNaN(nextEta.getTime())) {
+    if (state.length === 0) {
+      setSubmitError('Choose at least one shipment status.');
+      return;
+    }
+    if (!nextCarrier || Number.isNaN(nextEta.getTime())) {
       setSubmitError(
-        'Choose a status and enter a carrier and estimated delivery time.'
+        'Enter a carrier name and a valid estimated delivery time.'
       );
       return;
     }
@@ -191,6 +195,7 @@ export function UpdateShipmentForm({
               <input
                 id={`${id}-carrier`}
                 type="text"
+                required
                 value={carrier}
                 onChange={(e) => setCarrier(e.target.value)}
                 className={fieldClassName}
@@ -208,10 +213,18 @@ export function UpdateShipmentForm({
               <input
                 id={`${id}-eta`}
                 type="datetime-local"
+                required
+                aria-describedby={`${id}-eta-help`}
                 value={estimatedDeliveryDate}
                 onChange={(e) => setEstimatedDeliveryDate(e.target.value)}
                 className={fieldClassName}
               />
+              <p
+                id={`${id}-eta-help`}
+                className="mt-1 text-xs text-muted-foreground"
+              >
+                Enter the date and time in your local time zone.
+              </p>
             </div>
 
             <div>
@@ -243,6 +256,7 @@ export function UpdateShipmentForm({
                   id={`${id}-latitude`}
                   type="text"
                   value={lat}
+                  aria-describedby={`${id}-coordinates-help`}
                   onChange={(e) => setLat(e.target.value)}
                   className={fieldClassName}
                   placeholder="e.g. 48.21"
@@ -259,11 +273,18 @@ export function UpdateShipmentForm({
                   id={`${id}-longitude`}
                   type="text"
                   value={lng}
+                  aria-describedby={`${id}-coordinates-help`}
                   onChange={(e) => setLng(e.target.value)}
                   className={fieldClassName}
                   placeholder="e.g. 16.37"
                 />
               </div>
+              <p
+                id={`${id}-coordinates-help`}
+                className="col-span-2 text-xs text-muted-foreground"
+              >
+                Enter both coordinates, or leave both blank.
+              </p>
             </div>
           </fieldset>
           <p role="alert" className="text-sm text-destructive empty:m-0">
@@ -350,11 +371,9 @@ export function UpdateShipmentForm({
           </div>
         </div>
       )}
-      {closeError && (
-        <p role="alert" className="text-sm text-destructive">
-          {closeError}
-        </p>
-      )}
+      <p role="alert" className="text-sm text-destructive empty:m-0">
+        {closeError}
+      </p>
     </section>
   );
 }

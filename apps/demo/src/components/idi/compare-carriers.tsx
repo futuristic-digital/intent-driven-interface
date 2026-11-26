@@ -10,6 +10,10 @@ import { ShipmentPicker } from './shipment-picker';
 import { useShipmentSelection } from './use-shipment-selection';
 
 const actionTitle = 'Compare carriers';
+const priceFormatter = new Intl.NumberFormat('en-IE', {
+  style: 'currency',
+  currency: 'EUR',
+});
 
 // Fictional quote contracts and deterministic calendar-day pricing.
 const quoteIdSchema = schema.enum([
@@ -69,11 +73,8 @@ function meetsDeadline(quote: Quote, deliverBy: string | null) {
   return deliverBy === null || quote.deliveryDate <= deliverBy;
 }
 
-function formatPrice(quote: Pick<Quote, 'price' | 'currency'>) {
-  return new Intl.NumberFormat('en-IE', {
-    style: 'currency',
-    currency: quote.currency,
-  }).format(quote.price);
+function formatPrice(quote: Pick<Quote, 'price'>) {
+  return priceFormatter.format(quote.price);
 }
 
 const outputSchema = schema.discriminatedUnion('status', [
@@ -242,7 +243,7 @@ export const compareCarriers = defineIDIComponent({
                   };
                 });
               }}
-              className="min-h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none sm:w-auto"
+              className="min-h-10 w-full min-w-0 rounded-md border border-muted-foreground bg-background px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none sm:w-auto"
             />
             <p
               id={`${id}-deadline-help`}

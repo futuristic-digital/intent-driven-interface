@@ -17,7 +17,6 @@ export function ChatHeader({
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
 }) {
-
   return (
     <header className="relative z-30 flex shrink-0 items-center border-b border-border/50 bg-card/50 px-4 py-3 backdrop-blur-sm font-mono">
       <div className="flex items-center gap-3">
@@ -43,10 +42,10 @@ export function ChatHeader({
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 border border-primary/30">
               <Truck className="h-5 w-5 text-primary" aria-hidden="true" />
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
-              <span className="absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-primary" />
-            </span>
+            <span
+              aria-hidden="true"
+              className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-primary"
+            />
           </div>
           <div>
             <h1 className="text-lg font-bold tracking-wide text-foreground">
@@ -58,7 +57,6 @@ export function ChatHeader({
           </div>
         </div>
       </div>
-
     </header>
   );
 }

@@ -15,6 +15,10 @@ import { ShipmentPicker } from './shipment-picker';
 import { useShipmentSelection } from './use-shipment-selection';
 
 const actionTitle = 'Choose a delivery slot';
+const weekdayFormatter = new Intl.DateTimeFormat('en-GB', {
+  weekday: 'short',
+  timeZone: 'UTC',
+});
 
 // Date-only values and explicit delivery timezone avoid browser-dependent slot times.
 const windowSchema = schema.enum(['morning', 'afternoon', 'evening']);
@@ -153,7 +157,7 @@ export const selectDeliverySlot = defineIDIComponent({
       <section
         aria-label={actionTitle}
         aria-busy={busy !== null}
-        className="space-y-4 rounded-lg border border-border bg-card p-4 text-card-foreground"
+        className="@container space-y-4 rounded-lg border border-border bg-card p-4 text-card-foreground"
       >
         <header className="space-y-1">
           <h3 ref={headingRef} tabIndex={-1} className="font-semibold">
@@ -184,7 +188,7 @@ export const selectDeliverySlot = defineIDIComponent({
                   .safeParse(event.currentTarget.value);
                 if (parsed.success) selectDate(parsed.data);
               }}
-              className="min-h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none sm:w-auto"
+              className="min-h-10 w-full min-w-0 rounded-md border border-muted-foreground bg-background px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none sm:w-auto"
             />
             <p id={`${id}-date-help`} className="text-xs text-muted-foreground">
               Choose any date to browse its week. Deliveries start tomorrow,
@@ -194,9 +198,10 @@ export const selectDeliverySlot = defineIDIComponent({
 
           <fieldset className="min-w-0">
             <legend className="sr-only">Days in the selected week</legend>
-            <div className="grid grid-cols-7 gap-1 sm:gap-2">
+            <div className="grid grid-cols-4 gap-1 @xs:grid-cols-7 sm:gap-2">
               {week.map((day) => {
                 const date = day.toISOString().slice(0, 10);
+                const weekday = weekdayFormatter.format(day);
                 const selected = date === componentInput.date;
                 const hasAvailability =
                   availableWindows(date, today).length > 0;
@@ -212,14 +217,9 @@ export const selectDeliverySlot = defineIDIComponent({
                       checked={selected}
                       onChange={() => selectDate(date)}
                       className="sr-only"
-                      aria-label={`${date}${hasAvailability ? '' : ', no available slots'}`}
+                      aria-label={`${weekday} ${date}${hasAvailability ? '' : ', no available slots'}`}
                     />
-                    <span className="text-xs">
-                      {day.toLocaleDateString('en-GB', {
-                        weekday: 'short',
-                        timeZone: 'UTC',
-                      })}
-                    </span>
+                    <span className="text-xs">{weekday}</span>
                     <span
                       className={`font-semibold tabular-nums ${hasAvailability ? '' : 'line-through'}`}
                     >

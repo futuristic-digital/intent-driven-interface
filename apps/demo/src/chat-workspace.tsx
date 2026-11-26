@@ -82,24 +82,30 @@ export function ChatWorkspace() {
   if (chat.status !== 'ready') {
     return (
       <main className="grid min-h-dvh place-items-center bg-background p-6 text-center">
-        {chat.status === 'loading' ? (
-          <p role="status" className="text-muted-foreground">
-            Loading chat…
+        <div className="max-w-md space-y-3">
+          <h1 className="text-2xl font-bold">Flowdock: Intent-Driven Interface demo</h1>
+          <p>
+            Ask to compare carriers, view shipments, or draft a delay notice.
+            All shipments and actions are simulated.
           </p>
-        ) : (
-          <div className="space-y-3">
-            <p role="alert">Chat history couldn’t load.</p>
-            <Button
-              type="button"
-              onClick={() => {
-                setChat({ status: 'loading' });
-                setAttempt((previous) => previous + 1);
-              }}
-            >
-              Retry loading history
-            </Button>
-          </div>
-        )}
+          <p role="status" className="text-muted-foreground">
+            {chat.status === 'loading' ? 'Loading chat…' : ''}
+          </p>
+          {chat.status === 'error' && (
+            <>
+              <p role="alert">Chat history couldn’t load.</p>
+              <Button
+                type="button"
+                onClick={() => {
+                  setChat({ status: 'loading' });
+                  setAttempt((previous) => previous + 1);
+                }}
+              >
+                Retry loading history
+              </Button>
+            </>
+          )}
+        </div>
       </main>
     );
   }

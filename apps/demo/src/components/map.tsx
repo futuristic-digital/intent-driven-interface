@@ -8,8 +8,13 @@ import {
   type ReactElement,
 } from 'react';
 import { createRoot } from 'react-dom/client';
-import { type Map as MapboxMap, LngLatBounds, Popup } from 'mapbox-gl';
-import { mapBox } from '../utils/mapbox';
+import {
+  Map as MapboxMap,
+  Marker as MapboxMarker,
+  LngLatBounds,
+  Popup,
+} from 'mapbox-gl';
+import { mapboxAccessToken } from '../utils/mapbox';
 
 export type Marker = {
   label: string;
@@ -42,17 +47,14 @@ export const Map = ({
     (container: HTMLDivElement | null) => {
       if (!container) return;
 
-      if (!mapBox.accessToken?.trim()) {
-        onUnavailable();
-        return;
-      }
-
       let map: MapboxMap;
       try {
-        map = new mapBox.Map({
+        map = new MapboxMap({
           container,
+          accessToken: mapboxAccessToken,
           center: initial.position,
           zoom: initial.zoom,
+          cooperativeGestures: true,
         });
       } catch {
         onUnavailable();
@@ -131,7 +133,11 @@ export const Map = ({
           </div>
         </div>
       )}
-      <div ref={mapContainerRef} inert={!loadedMap} className="h-full w-full" />
+      <div
+        ref={mapContainerRef}
+        inert={!loadedMap}
+        className="h-full w-full [&_.mapboxgl-canvas:focus-visible]:outline-2 [&_.mapboxgl-canvas:focus-visible]:-outline-offset-2 [&_.mapboxgl-canvas:focus-visible]:outline-ring"
+      />
     </div>
   );
 };
@@ -155,12 +161,9 @@ function addMarker(
       'motion-safe:group-hover:scale-125'
     );
   }
-  const pulse = document.createElement('span');
-  pulse.className = `absolute -inset-2 rounded-full motion-safe:animate-ping ${bgColor}`;
-  dot.append(pulse);
   markerElement.append(dot);
 
-  const marker = new mapBox.Marker({
+  const marker = new MapboxMarker({
     element: markerElement,
     anchor: 'center',
   }).setLngLat([lng, lat]);
@@ -170,6 +173,7 @@ function addMarker(
     const mapPopup = new Popup({
       closeOnClick: true,
       closeButton: false,
+      maxWidth: 'min(240px, calc(100% - 16px))',
       className:
         '[&_.mapboxgl-popup-content]:bg-popover [&_.mapboxgl-popup-content]:text-popover-foreground',
     }).setDOMContent(popupContainer);
@@ -190,19 +194,24 @@ function addMarker(
           }
         }}
       >
-        {popup}
         <button
           type="button"
           className="absolute top-0 right-0 flex size-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-          aria-label="Close"
+          aria-label={`Close ${label} popup`}
           onClick={closePopup}
         >
           <span aria-hidden="true" className="text-lg leading-none">×</span>
         </button>
+        {popup}
       </div>
     );
-    // Mapbox supplies keyboard activation and a single tab stop for this marker.
     marker.setPopup(mapPopup);
+    // Keep Mapbox's tab stop and expansion state, but suppress Space scrolling and key repeat.
+    markerElement.addEventListener('keydown', (event) => {
+      if (event.isComposing || (event.key !== 'Enter' && event.key !== ' ')) return;
+      event.preventDefault();
+      if (!event.repeat) marker.togglePopup();
+    });
   }
   marker.addTo(map);
 

@@ -78,11 +78,9 @@ export const shipmentDetails = defineIDIComponent({
         ) : (
           <p className="text-sm text-muted-foreground">Shipment not found.</p>
         )}
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
+        <p role="alert" className="text-sm text-destructive empty:m-0">
+          {error}
+        </p>
         <Button
           type="button"
           variant="outline"

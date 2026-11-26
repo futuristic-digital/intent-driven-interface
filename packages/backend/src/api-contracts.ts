@@ -43,7 +43,7 @@ export const hasStreamingParts = (message: Pick<IDIChatMessage, 'parts'>): boole
 /** Schema shared by storage and rendering when reading untrusted wire metadata. */
 export const uiToolMetadataSchema = z.object({
   componentInputState: z.json().optional(),
-  /** Draft output is discarded when the lifecycle ends. */
+  /** Draft output is cleared from metadata on close; the final result lives in the tool output. */
   componentOutputState: z.json().optional(),
   /** Lifecycle end time, also used to display finalized output. */
   closedAt: z.string().optional(),

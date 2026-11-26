@@ -6,10 +6,10 @@ Once you’ve [registered your components](../README.md#3-create-the-component-m
 
 Use `useOpenComponent` to open another registered component without asking the model. For example, add a **View receipts** button to the expenses view that opens receipts for the selected month. Register `expenseReceipts` alongside `expenses` with the same `{ month }` input schema.
 
-In the `expenses` definition:
+In the `expenses` definition, import the component map and React’s `ReactElement` as types (`import type`). An explicit return type lets TypeScript infer the map even though it includes `expenses`.
 
 ```tsx
-component: ({ componentInput, useOpenComponent }) => {
+component: function Expenses({ componentInput, useOpenComponent }): ReactElement {
   const openComponent = useOpenComponent<typeof components>();
 
   return (
@@ -32,7 +32,7 @@ component: ({ componentInput, useOpenComponent }) => {
 },
 ```
 
-With `reopenThisComponentOnClose: true`, any successful `closeComponent` call from the receipts view automatically reopens expenses on the same month, with or without output. No separate back button or model turn is needed. Omit the option to use the [normal close behavior](../README.md#component-lifecycle).
+With `reopenThisComponentOnClose: true`, explicitly closing the receipts view reopens expenses with its original input and any edits captured when receipts opened. The reopened instance does not restore the caller’s output. This works whether or not receipts produces output and does not start a model turn. If the user sends a new message or opens a different component instead, that automatic close does not reopen the caller. Omit the option to use the [normal close behavior](../README.md#component-lifecycle).
 
 ## Control how components open
 

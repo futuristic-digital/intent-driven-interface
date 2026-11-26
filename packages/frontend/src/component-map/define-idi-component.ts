@@ -20,7 +20,7 @@ export type ComponentSummaryProps<INPUT, OUTPUT> = {
   componentInput: INPUT;
 } & ([OUTPUT] extends [undefined] ? unknown : { componentOutput?: OUTPUT });
 
-/** Runtime actions never rewrite the original invocation or finalize output implicitly. */
+/** Draft setters leave the original invocation and finalized output untouched. */
 export type ComponentRuntimeProps<INPUT, OUTPUT> = Pick<
   ComponentSummaryProps<INPUT, OUTPUT>,
   'componentInput'
@@ -39,7 +39,7 @@ export type ComponentRuntimeProps<INPUT, OUTPUT> = Pick<
         ) => void;
       });
 
-/** Options for {@link OpenComponent} / `useOpenComponent`. */
+/** Options used only for opens via the injected `useOpenComponent`. */
 export type OpenComponentOptions = {
   /**
    * When opening another component via `useOpenComponent`, set this to true
@@ -110,10 +110,9 @@ export type ComponentAsTool<
    */
   inputExamples?: INPUT[];
   /**
-   * Shape of the user's final interaction — the outcome written by
-   * `closeComponent` (which button, which option, confirm vs cancel).
-   * This is the signal that may trigger a follow-up component or close the
-   * current flow and start a new agent turn.
+   * Shape of the editable draft and finalized outcome (e.g. confirm vs cancel).
+   * When the view closes, IDI finalizes the draft unless `closeComponent`
+   * supplies a replacement.
    */
   outputSchema?: ZodType<OUTPUT>;
   /**
@@ -125,9 +124,8 @@ export type ComponentAsTool<
   /** History summaries receive effective input and optional finalized output. */
   componentSummary: React.ComponentType<ComponentSummaryProps<INPUT, OUTPUT>>;
   /**
-   * Optional UI chip rendered below `componentSummary` when output exists.
-   * Shows the user's final interaction visually (icon + short label), not raw
-   * schema data.
+   * Optional summary the host can render alongside `componentSummary`, using
+   * the validated final output's fields as props.
    */
   outputSummary?: React.ComponentType<OUTPUT>;
 };
@@ -143,7 +141,7 @@ export type ComponentDefinition<
     : ComponentAsTool<INPUT, OUTPUT>;
 
 /**
- * Registers a React component as an IDI tool.
+ * Defines a React component that can be registered in an IDI component map.
  *
  * Field roles at a glance:
  * - `title` / `description` / `inputSchema` / `inputExamples` — wire-format

@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, type Ref } from 'react';
 import { Check, Pin } from 'lucide-react';
 import type {
   OpenComponent,
@@ -18,6 +18,7 @@ type DemoComponentPart = ComponentRenderUIPart<typeof componentMap>;
 export function RenderComponent({
   timestamp,
   renderComponentPart,
+  liveCardRef,
   openComponent,
   pinComponent,
   pinnedIds,
@@ -25,6 +26,7 @@ export function RenderComponent({
 }: {
   timestamp: string;
   renderComponentPart: DemoComponentPart;
+  liveCardRef?: Ref<HTMLDivElement>;
   openComponent: OpenComponent<typeof componentMap>;
   pinComponent: PinDemoComponent;
   pinnedIds: ReadonlySet<string>;
@@ -39,13 +41,13 @@ export function RenderComponent({
     componentOutput,
   } = renderComponentPart;
   const actionHadFocus = useRef(false);
-  const summaryButtonRef = useCallback((button: HTMLButtonElement | null) => {
+  const restoreActionFocus = useCallback((target: HTMLElement | null) => {
     if (
-      button &&
+      target &&
       actionHadFocus.current &&
       document.activeElement === document.body
     ) {
-      button.focus();
+      target.focus();
     }
   }, []);
 
@@ -104,7 +106,7 @@ export function RenderComponent({
         <div className="rounded-lg border border-border bg-card p-4 text-sm">
           {canOpenStandalone ? (
             <button
-              ref={summaryButtonRef}
+              ref={restoreActionFocus}
               type="button"
               aria-disabled={disabled}
               onClick={() => {
@@ -122,7 +124,11 @@ export function RenderComponent({
             summary
           )}
           {OutputSummary && output?.success && output.data !== undefined && (
-            <div className="mt-2 text-muted-foreground">
+            <div
+              ref={canOpenStandalone ? undefined : restoreActionFocus}
+              tabIndex={canOpenStandalone ? undefined : -1}
+              className="mt-2 text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
               {/* @ts-expect-error This output was narrowed by the same registration's output schema. */}
               <OutputSummary {...output.data} />
             </div>
@@ -130,6 +136,13 @@ export function RenderComponent({
         </div>
       ) : (
         <div
+          ref={liveCardRef}
+          tabIndex={liveCardRef ? -1 : undefined}
+          role={liveCardRef ? 'group' : undefined}
+          aria-label={
+            liveCardRef ? (renderComponentPart.title ?? componentId) : undefined
+          }
+          className="focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           onFocusCapture={() => {
             actionHadFocus.current = true;
           }}

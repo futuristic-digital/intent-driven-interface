@@ -3,8 +3,9 @@ import { DevelopmentAgentation } from './development-agentation';
 import '../index.css';
 
 export const metadata: Metadata = {
-  title: 'Intent-Driven Interface demo',
-  description: 'A logistics app controlled with natural language.',
+  title: 'Flowdock | Intent-Driven Interface live demo',
+  description:
+    'Try Intent-Driven Interface in a simulated logistics workspace. Ask to compare carriers, view shipments, or draft a delay notice.',
   alternates: { canonical: 'https://www.intent-driven-interface.dev/demo' },
 };
 

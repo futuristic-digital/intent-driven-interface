@@ -28,7 +28,7 @@ From the directory containing your app’s `package.json`, install the skills pa
 npm install --save-dev @intent-driven-interface/skills
 ```
 
-Then register both skills with the command for your coding agent:
+Then register both skills with the command for your coding agent. Registration creates project-local links to the installed skills, so updating the package updates the linked content.
 
 **Codex, Cursor, Gemini CLI, OpenCode, and other agents that read `.agents/skills/`:**
 
@@ -106,9 +106,9 @@ Add `instructions` to give the assistant a voice or app-specific guidance. IDI a
 
 #### Save chat history with `onMessageUpdate`
 
-IDI calls `onMessageUpdate` when it receives a new user message, when the assistant finishes responding, and when the user edits or closes a component. Each call gives the complete message, including its ISO 8601 creation time at `message.metadata.timestamp`.
+IDI calls `onMessageUpdate` before generating a reply to a new user message, after a successful assistant response, and when the browser reports a component opened directly, edited, or closed. Each call provides the complete message, including its ISO 8601 creation time at `message.metadata.timestamp`.
 
-Use the message ID to insert or update the record in your app’s storage, and preserve `message.metadata.timestamp` when restoring saved messages as `initialMessages`. If you omit the callback, chat still works, but messages cannot be restored across page reloads.
+Use the message ID to insert or update the record in your app’s storage, and preserve `message.metadata.timestamp` when restoring saved messages as `initialMessages`. For an ephemeral chat, omit the callback; IDI does not save messages itself.
 
 ### 2. Create an IDI component
 
@@ -137,7 +137,7 @@ export const expenses = defineIDIComponent({
 });
 ```
 
-**How does the model choose?** `title` and `description` tell it when to open the component. `inputSchema` tells it what to pass: here, a month in `YYYY-MM` format. For each component, IDI sends the tool definition to the server. Your React code stays in the browser.
+**How does the model choose?** `title` and `description` tell it when to open the component. `inputSchema` tells it what to pass: here, a month in `YYYY-MM` format. IDI sends tool definitions for components the model can open, not their React implementations.
 
 **What does the user see?** While the expenses component is open, `component` renders its contents. Replace the `<h2>` with your app’s expense list, filtered by `componentInput.month`. After the component closes, `componentSummary` shows the selected month in the conversation.
 
@@ -168,13 +168,14 @@ Call `useIDI` inside your React chat component. It returns `messages` to render,
 ```tsx
 'use client';
 
-import { useIDI } from '@intent-driven-interface/frontend';
+import { useIDI, type IDIChatMessage } from '@intent-driven-interface/frontend';
 import { components } from './components';
 
-export function Chat() {
-  const { messages, sendMessage, status } = useIDI({
+export function Chat({ initialMessages }: { initialMessages?: IDIChatMessage[] }) {
+  const { messages, sendMessage, status, error } = useIDI({
     backend: { url: '/api/idi' },
     components,
+    initialMessages,
   });
 
   return (
@@ -190,7 +191,10 @@ export function Chat() {
               if (part.isLive) return <part.component key={index} {...part.componentProps} />;
 
               // Component is an entry in the chat history, show a compact summary
-              const output = part.outputSchema?.safeParse(part.componentOutput);
+              const output =
+                part.componentOutput === undefined
+                  ? undefined
+                  : part.outputSchema?.safeParse(part.componentOutput);
               const summaryProps = {
                 componentInput: part.componentInput,
                 componentOutput: output?.success ? output.data : undefined,
@@ -201,11 +205,10 @@ export function Chat() {
         ))}
       </ul>
 
-
       {(status === 'submitted' || status === 'streaming') && (
         <p role="status">Responding…</p>
       )}
-
+      {error && <p role="alert">The chat request failed.</p>}
 
       <form action={(data) => sendMessage(String(data.get('message')))}>
         <label>
@@ -251,12 +254,12 @@ Reopening adds a new instance at the end of the chat without asking the model. T
 
 ## Component lifecycle
 
-1. **Open.** Only the last part of the latest message can be a live, interactive component. The model can open a component by ending its reply with a call to it, or your app can open one directly with `openComponent`. Render the live view when `part.isLive` is `true` and its summary otherwise.
+1. **Open.** Only the last part of the latest message can remain live. The model can open a component by ending its reply with a call to it, or your app can open one directly with `openComponent`. IDI hides open components while a reply is pending or streaming. Render the live view when `part.isLive` is `true` and its summary otherwise.
 2. **Edit.** `setComponentInput` replaces the whole current input (`part.componentInput`) rather than merging fields. `part.componentInputInitial` keeps the original value. If the component defines an `outputSchema`, use `setComponentOutput` to edit the draft or `setComponentOutput(undefined)` to clear it. Both setters accept a value or an updater function; neither starts a model turn.
 3. **Close.** Call `closeComponent()` to use the draft as the final result, or pass a new result with `closeComponent({ setComponentOutput: output })`. If the server doesn’t acknowledge the update, the promise rejects, the component stays open with its draft intact, and no follow-up turn starts.
-4. **Show the summary.** `componentSummary` receives the current input and optional final output. If you define an `outputSummary`, render it alongside the component summary. `part.componentOutput` holds the draft while the component is open and the final output once it closes.
+4. **Show the summary.** Pass the current input and optional validated final output to `componentSummary`. If you define an `outputSummary`, render it alongside the component summary with the validated output fields as its props. `part.componentOutput` holds the draft while the component is open and the final output once it closes.
 
-An explicit `closeComponent()` normally starts another model turn after acknowledgment, unless it [returns to the component that opened it](docs/follow-up-components.md#open-a-component-from-another-component). Sending a new message or opening another component also closes the current view, but that automatic close doesn’t request a separate follow-up. The model sees the original input in the tool call, and the result contains `output` (the final outcome or `null`) plus `inputOverride` if the input changed. To close the component without starting another model turn, call `closeComponent({ agentFollowUp: false })`.
+An explicit `closeComponent()` normally starts another model turn after acknowledgment, unless it [returns to the component that opened it](docs/follow-up-components.md#open-a-component-from-another-component). Sending a new message or opening another component also closes the current view and finalizes its draft output, but doesn’t request a separate follow-up. In the model’s context, the tool call keeps the original input, and the result contains `output` (the final outcome or `null`) plus the complete `inputOverride` if the input was edited. To close without a model turn, call `closeComponent({ agentFollowUp: false })`. This does not prevent returning to the caller.
 
 ---
 

@@ -22,7 +22,7 @@ const actionTitle = 'Compose delay notification';
 const deliverySimulationNotice = 'Delivery remains simulated.';
 
 const fieldClassName =
-  'min-h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none';
+  'min-h-10 w-full min-w-0 rounded-md border border-muted-foreground bg-background px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none';
 
 function focusPreviewHeading(heading: HTMLHeadingElement | null) {
   heading?.focus();
@@ -282,6 +282,12 @@ export const composeDelayNotification = defineIDIComponent({
                 </p>
               </div>
             </fieldset>
+            {!canPreview && (
+              <p className="text-sm text-muted-foreground">
+                To preview, choose a recipient and enter a message
+                {componentInput.channel === 'email' ? ' and a subject.' : '.'}
+              </p>
+            )}
             <div className="flex justify-end">
               <Button
                 ref={previewButtonRef}

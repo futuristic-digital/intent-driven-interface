@@ -12,7 +12,7 @@ If you schedule a background write instead, the endpoint can acknowledge an upda
 
 ## Resume a chat
 
-On page load, read the messages [saved by the server endpoint](../README.md#save-chat-history-with-onmessageupdate) and pass them as `initialMessages`.
+On page load, read the messages [saved by the server endpoint](../README.md#save-chat-history-with-onmessageupdate) in chronological order. Validate them with `idiMessagesSchema.safeParseAsync` and pass them to the [chat component](../README.md#4-connect-and-render-the-conversation) as `initialMessages`.
 
 ```tsx
 import { eq } from 'drizzle-orm';
@@ -35,7 +35,7 @@ export async function SavedChat({ userId }: { userId: string }) {
 }
 ```
 
-With no saved messages, the chat starts empty. For a new chat, you can also omit `initialMessages` or use `defineInitialMessages` to supply a welcome message. `useIDI` reads `initialMessages` when the chat mounts; it doesn’t fetch history.
+With no saved messages, the chat starts empty. To supply a welcome message, use `defineInitialMessages` from `@intent-driven-interface/frontend`. `useIDI` reads `initialMessages` when it creates the chat; changing those messages alone does not replace the current conversation. To load a different chat, remount the chat component or change the `id` passed to `useIDI` along with `initialMessages`. This `id` is client-side only; the host still decides how requests identify the chat on the server.
 
 ## Pin a component
 

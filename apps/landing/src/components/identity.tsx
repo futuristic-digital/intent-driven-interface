@@ -28,10 +28,10 @@ export function Brand() {
   return (
     <a
       href="/"
-      aria-label="Intent-Driven Interface home"
+      aria-label="IDI — Intent-Driven Interface home"
       className="group inline-flex items-center gap-2.5"
     >
-      <SunMark className="size-9 text-sunflower transition-transform group-hover:rotate-12" />
+      <SunMark className="size-9 shrink-0 text-sunflower motion-safe:transition-transform motion-safe:group-hover:rotate-12" />
       <span className="font-sans text-3xl leading-none font-bold tracking-tighter">
         IDI
       </span>

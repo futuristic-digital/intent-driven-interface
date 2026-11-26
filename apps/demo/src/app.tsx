@@ -8,7 +8,10 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { ChatMessages } from './ui/chat-message/chat-messages';
+import {
+  ChatMessages,
+  type ChatMessagesHandle,
+} from './ui/chat-message/chat-messages';
 import { ChatHeader } from './ui/header';
 import { ChatInput } from './ui/chat-input';
 import { PinnedComponentsPanel } from './ui/pinned-components-panel';
@@ -70,9 +73,8 @@ export function App({
   const sidebarToggleRef = useRef<HTMLButtonElement>(null);
   const [isSidebarOpenOnDesktop, setIsSidebarOpenOnDesktop] = useState(true);
   const [isSidebarOpenOnMobile, setIsSidebarOpenOnMobile] = useState(false);
-  const isSidebarOpen = isDesktop
-    ? isSidebarOpenOnDesktop
-    : isSidebarOpenOnMobile;
+  const isMobileSidebarOpen = !isDesktop && isSidebarOpenOnMobile;
+  const isSidebarOpen = isDesktop ? isSidebarOpenOnDesktop : isMobileSidebarOpen;
 
   function toggleSidebar() {
     if (isDesktop) setIsSidebarOpenOnDesktop((open) => !open);
@@ -120,6 +122,12 @@ export function App({
 
   const agentAnswerInProgress =
     status === 'streaming' || status === 'submitted';
+  const chatMessagesRef = useRef<ChatMessagesHandle>(null);
+
+  const reopenComponent: typeof openComponent = (componentId, ...options) => {
+    chatMessagesRef.current?.focusOnReopen(componentId);
+    openComponent(componentId, ...options);
+  };
 
   return (
     <main
@@ -175,23 +183,25 @@ export function App({
             id={sidebarId}
             panelRef={sidebarRef}
             pinnedComponents={pinnedComponents}
-            openComponent={openComponent}
+            openComponent={reopenComponent}
             disabled={agentAnswerInProgress}
             isOpen={isSidebarOpen}
             isOpenOnDesktop={isSidebarOpenOnDesktop}
-            isOpenOnMobile={isSidebarOpenOnMobile}
+            isOpenOnMobile={isMobileSidebarOpen}
             onClose={closeMobileSidebar}
           />
           <div
             className="flex min-w-0 flex-1 flex-col"
-            inert={!isDesktop && isSidebarOpenOnMobile}
+            inert={isMobileSidebarOpen}
           >
             {/* Chat Messages */}
             <div className="min-h-0 flex-1 overflow-hidden">
               <ChatMessages
+                ref={chatMessagesRef}
                 messages={messages}
                 agentAnswerInProgress={agentAnswerInProgress}
-                openComponent={openComponent}
+                generationFailed={status === 'error'}
+                openComponent={reopenComponent}
                 pinComponent={handlePinComponent}
                 pinnedIds={pinnedIds}
               />
@@ -199,7 +209,10 @@ export function App({
 
             {/* Chat Input */}
             <ChatInput
-              onSendMessage={sendMessage}
+              onSendMessage={(text) => {
+                chatMessagesRef.current?.followLatest();
+                return sendMessage(text);
+              }}
               generationFailed={status === 'error'}
               updateFailed={Boolean(error) && status !== 'error'}
               disabled={agentAnswerInProgress}

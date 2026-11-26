@@ -4,6 +4,7 @@
 
 /* Light mode (default) */
 :root {
+  color-scheme: light dark;
   --background: oklch(0.97 0.01 185);
   --foreground: oklch(0.15 0.02 185);
   --card: oklch(0.99 0.005 185);
