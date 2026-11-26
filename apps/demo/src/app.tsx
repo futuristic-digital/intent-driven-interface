@@ -1,6 +1,13 @@
 'use client';
 
-import { useCallback, useState, useSyncExternalStore } from 'react';
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { ChatMessages } from './ui/chat-message/chat-messages';
 import { ChatHeader } from './ui/header';
 import { ChatInput } from './ui/chat-input';
@@ -8,38 +15,23 @@ import { PinnedComponentsPanel } from './ui/pinned-components-panel';
 import {
   useIDI,
   defineInitialMessages,
+  type IDIChatMessage,
 } from '@intent-driven-interface/frontend';
-import type {
-  ComponentInputSnapshot,
-  PinnedIDIComponent,
-} from '@intent-driven-interface/backend/api-contracts';
-import { generateId } from 'ai';
 import { componentMap } from './components/idi/component-map';
-import { idiApiUrl } from './utils/api';
+import {
+  createDemoPin,
+  maxDemoPins,
+  readDemoPins,
+  saveDemoPins,
+  type PinDemoComponent,
+} from './components/idi/pinned-component';
+import { demoChatIdHeader, demoIDIUrl } from './utils/api';
 
-const idiBackend = { url: idiApiUrl, requestHeaders: {} };
-
-function getPinKey(componentId: string, snapshot: ComponentInputSnapshot) {
-  return JSON.stringify(
-    [componentId, snapshot.componentInput, snapshot.componentInputState],
-    (_key, value: unknown) => {
-      if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-        return value;
-      }
-      return Object.fromEntries(
-        Object.entries(value).sort(([left], [right]) =>
-          left.localeCompare(right)
-        )
-      );
-    }
-  );
-}
-
-const initialMessages = defineInitialMessages([
+const welcomeMessages = defineInitialMessages([
   {
     id: 'initial',
     role: 'assistant',
-    text: 'Welcome! Manage your shipments by telling me what you need.\n\nYou can view shipments, update delivery details, choose a delivery slot, compare carriers, or notify a customer about a delay. I’ll prepare notification drafts for you to review and personalize before sending.\n\nType a request below or choose a suggestion to get started.',
+    text: 'Welcome to Flowdock. Ask the AI to compare carriers or draft a delay notice. All shipments and actions are simulated.',
   },
 ]);
 
@@ -55,15 +47,27 @@ function subscribeToDesktopViewport(onChange: () => void) {
 const getDesktopViewport = () => window.matchMedia(desktopQuery).matches;
 const getServerViewport = () => false;
 
-export function App() {
+export function App({
+  chatId,
+  savedMessages,
+}: {
+  chatId: string;
+  savedMessages: IDIChatMessage[];
+}) {
   const isDesktop = useSyncExternalStore(
     subscribeToDesktopViewport,
     getDesktopViewport,
     getServerViewport
   );
-  const [pinnedComponents, setPinnedComponents] = useState<
-    PinnedIDIComponent[]
-  >([]);
+  const [pinnedComponents, setPinnedComponents] = useState(readDemoPins);
+  useEffect(() => saveDemoPins(pinnedComponents), [pinnedComponents]);
+  const pinnedIds = useMemo(
+    () => new Set(pinnedComponents.map(({ id }) => id)),
+    [pinnedComponents]
+  );
+  const sidebarId = useId();
+  const sidebarRef = useRef<HTMLElement>(null);
+  const sidebarToggleRef = useRef<HTMLButtonElement>(null);
   const [isSidebarOpenOnDesktop, setIsSidebarOpenOnDesktop] = useState(true);
   const [isSidebarOpenOnMobile, setIsSidebarOpenOnMobile] = useState(false);
   const isSidebarOpen = isDesktop
@@ -77,47 +81,39 @@ export function App() {
 
   function closeMobileSidebar() {
     setIsSidebarOpenOnMobile(false);
-    if (!isDesktop)
-      document.getElementById('pinned-components-toggle')?.focus();
+    if (!isDesktop) sidebarToggleRef.current?.focus();
   }
-  const {
-    messages,
-    sendMessage,
-    status,
-    restoreComponent,
-
-    isLoadingInitialMessages,
-    hasOlderMessages,
-    isLoadingOlderMessages,
-    loadOlderMessages,
-  } = useIDI({
-    idiBackend,
-    componentMap,
-    initialMessages,
+  const backend = useMemo(
+    () => ({
+      url: demoIDIUrl,
+      requestHeaders: { [demoChatIdHeader]: chatId },
+    }),
+    [chatId]
+  );
+  const { messages, error, sendMessage, status, openComponent } = useIDI({
+    id: chatId,
+    backend,
+    components: componentMap,
+    initialMessages: savedMessages.length ? savedMessages : welcomeMessages,
   });
 
   /** Reveal the new pin using the current viewport. */
-  const handlePinComponent = async (
-    componentId: string,
-    snapshot: ComponentInputSnapshot
+  const handlePinComponent: PinDemoComponent = (
+    componentId,
+    componentInput
   ) => {
-    const inputSnapshot = structuredClone(snapshot);
-    const key = getPinKey(componentId, inputSnapshot);
-    const id = generateId();
-    setPinnedComponents((current) => {
-      const existing = current.find(
-        (pin) => getPinKey(pin.componentId, pin) === key
-      );
-      return [
-        { ...inputSnapshot, id: existing?.id ?? id, componentId },
-        ...current.filter((pin) => pin !== existing),
-      ];
-    });
+    const pin = createDemoPin(componentId, componentInput);
+    setPinnedComponents((previous) =>
+      [pin, ...previous.filter((entry) => entry.id !== pin.id)].slice(
+        0,
+        maxDemoPins
+      )
+    );
     if (getDesktopViewport()) {
       setIsSidebarOpenOnDesktop(true);
     } else {
       // Move focus out of the chat before the mobile overlay makes it inert.
-      document.getElementById('pinned-components-toggle')?.focus();
+      sidebarToggleRef.current?.focus();
       setIsSidebarOpenOnMobile(true);
     }
   };
@@ -125,19 +121,28 @@ export function App() {
   const agentAnswerInProgress =
     status === 'streaming' || status === 'submitted';
 
-  const handleSendMessage = useCallback(
-    async (text: string) => await sendMessage(text),
-    [sendMessage]
-  );
-
   return (
     <main
       className="relative min-h-dvh bg-background"
       onKeyDown={(event) => {
-        if (event.key === 'Escape' && isSidebarOpen) {
-          if (isDesktop) setIsSidebarOpenOnDesktop(false);
-          else closeMobileSidebar();
-          document.getElementById('pinned-components-toggle')?.focus();
+        if (
+          event.key !== 'Escape' ||
+          event.defaultPrevented ||
+          event.nativeEvent.isComposing ||
+          !isSidebarOpen
+        ) {
+          return;
+        }
+
+        if (!isDesktop) {
+          closeMobileSidebar();
+        } else if (
+          event.target === sidebarToggleRef.current ||
+          (event.target instanceof Node &&
+            sidebarRef.current?.contains(event.target))
+        ) {
+          setIsSidebarOpenOnDesktop(false);
+          sidebarToggleRef.current?.focus();
         }
       }}
     >
@@ -160,15 +165,18 @@ export function App() {
       {/* Chat Interface */}
       <div className="relative flex h-dvh flex-col overflow-hidden">
         <ChatHeader
+          sidebarId={sidebarId}
+          toggleRef={sidebarToggleRef}
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={toggleSidebar}
         />
         <div className="relative flex min-h-0 flex-1">
           <PinnedComponentsPanel
+            id={sidebarId}
+            panelRef={sidebarRef}
             pinnedComponents={pinnedComponents}
-            restoreComponent={restoreComponent}
-            isLoading={false}
-            disabled={isLoadingInitialMessages || agentAnswerInProgress}
+            openComponent={openComponent}
+            disabled={agentAnswerInProgress}
             isOpen={isSidebarOpen}
             isOpenOnDesktop={isSidebarOpenOnDesktop}
             isOpenOnMobile={isSidebarOpenOnMobile}
@@ -179,24 +187,22 @@ export function App() {
             inert={!isDesktop && isSidebarOpenOnMobile}
           >
             {/* Chat Messages */}
-            <div className="flex-1 overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-hidden">
               <ChatMessages
                 messages={messages}
-                agentAnswerInProgress={
-                  agentAnswerInProgress || isLoadingInitialMessages
-                }
-                restoreComponent={restoreComponent}
+                agentAnswerInProgress={agentAnswerInProgress}
+                openComponent={openComponent}
                 pinComponent={handlePinComponent}
-                hasOlderMessages={hasOlderMessages}
-                isLoadingOlderMessages={isLoadingOlderMessages}
-                loadOlderMessages={loadOlderMessages}
+                pinnedIds={pinnedIds}
               />
             </div>
 
             {/* Chat Input */}
             <ChatInput
-              onSendMessage={handleSendMessage}
-              disabled={isLoadingInitialMessages || agentAnswerInProgress}
+              onSendMessage={sendMessage}
+              generationFailed={status === 'error'}
+              updateFailed={Boolean(error) && status !== 'error'}
+              disabled={agentAnswerInProgress}
             />
           </div>
         </div>

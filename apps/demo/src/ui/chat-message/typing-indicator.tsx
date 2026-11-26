@@ -2,7 +2,7 @@ import { Bot } from 'lucide-react';
 
 export function TypingIndicator() {
   return (
-    <div className="flex gap-3">
+    <div aria-hidden="true" className="flex gap-3">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/30">
         <Bot className="h-4 w-4 text-primary" />
       </div>
@@ -11,7 +11,7 @@ export function TypingIndicator() {
           {[0, 1, 2].map((i) => (
             <span
               key={i}
-              className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"
+              className="h-1.5 w-1.5 rounded-full bg-primary motion-safe:animate-pulse"
               style={{ animationDelay: `${i * 150}ms` }}
             />
           ))}

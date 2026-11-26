@@ -1,37 +1,45 @@
-import type { PinnedIDIComponent } from '@intent-driven-interface/backend/api-contracts';
-import type { RestoreComponent } from '@intent-driven-interface/frontend';
-import { Loader2, Pin } from 'lucide-react';
+import type { OpenComponent } from '@intent-driven-interface/frontend';
+import { Pin } from 'lucide-react';
+import type { Ref } from 'react';
 import { componentMap } from '../components/idi/component-map';
+import type { DemoPinnedComponent } from '../components/idi/pinned-component';
 import { cn } from '../utils/cn';
 import { Button } from './button';
 
+
 /** Pins keep their own invocation inputs, rather than linking to an old message. */
 export function PinnedComponentsPanel({
+  id,
+  panelRef,
   pinnedComponents,
-  restoreComponent,
-  isLoading,
+  openComponent,
   disabled,
   isOpen,
   isOpenOnDesktop,
   isOpenOnMobile,
   onClose,
 }: {
-  pinnedComponents: PinnedIDIComponent[];
-  restoreComponent: RestoreComponent<typeof componentMap>;
-  isLoading: boolean;
+  id: string;
+  panelRef: Ref<HTMLElement>;
+  pinnedComponents: DemoPinnedComponent[];
+  openComponent: OpenComponent<typeof componentMap>;
   disabled: boolean;
   isOpen: boolean;
   isOpenOnDesktop: boolean;
   isOpenOnMobile: boolean;
   onClose: () => void;
 }) {
+  const availablePins = pinnedComponents.filter(
+    (pin) => !componentMap[pin.componentId].disableStandaloneOpen
+  );
+
   return (
     <>
       <button
         type="button"
-        aria-label="Close pinned components"
+        aria-label="Close workspace"
         tabIndex={-1}
-        aria-hidden={!isOpenOnMobile}
+        aria-hidden="true"
         disabled={!isOpenOnMobile}
         onClick={onClose}
         className={cn(
@@ -40,92 +48,67 @@ export function PinnedComponentsPanel({
         )}
       />
       <aside
-        id="pinned-components-panel"
-        aria-label="Pinned components"
+        id={id}
+        ref={panelRef}
+        aria-label="Workspace"
         inert={!isOpen}
         className={cn(
-          'absolute inset-y-0 left-0 z-20 overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-300 ease-in-out motion-reduce:transition-none lg:relative lg:shrink-0',
+          'absolute inset-y-0 left-0 z-20 max-w-full overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-300 ease-in-out motion-reduce:transition-none lg:relative lg:shrink-0',
           isOpenOnMobile ? 'w-72' : 'w-0',
           isOpenOnDesktop ? 'lg:w-72' : 'lg:w-0'
         )}
       >
-        <div className="flex h-full w-72 flex-col gap-4 border-r border-sidebar-border p-4">
-          <div className="flex items-center gap-2">
-            <Pin className="size-4 text-muted-foreground" aria-hidden="true" />
-            <h2 className="text-sm font-semibold">Pinned components</h2>
-          </div>
-          {isLoading ? (
-            <div
-              role="status"
-              className="flex items-center gap-2 text-sm text-muted-foreground"
-            >
-              <Loader2
-                className="size-4 motion-safe:animate-spin"
+        <div className="h-full w-72 max-w-dvw overflow-y-auto border-r border-sidebar-border p-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Pin
+                className="size-4 text-muted-foreground"
                 aria-hidden="true"
               />
-              Loading pins…
+              <h2 className="text-sm font-semibold">Pinned components</h2>
             </div>
-          ) : pinnedComponents.length === 0 ? (
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Pin a component next to its timestamp to reopen it here with the
-              same inputs.
-            </p>
-          ) : (
-            <nav
-              aria-label="Pinned components"
-              className="min-h-0 flex-1 space-y-2 overflow-y-auto"
-            >
-              {pinnedComponents.map((pin) => (
-                <PinnedComponentItem
-                  key={pin.id}
-                  pin={pin}
-                  disabled={disabled}
-                  restoreComponent={restoreComponent}
-                  onOpen={onClose}
-                />
-              ))}
-            </nav>
-          )}
+            {availablePins.length === 0 ? (
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Pin a component next to its timestamp to reopen it here with the
+                same inputs.
+              </p>
+            ) : (
+              <nav aria-label="Pinned components" className="space-y-2 p-1">
+                {availablePins.map((pin) => (
+                  <PinnedComponentItem
+                    key={pin.id}
+                    pin={pin}
+                    disabled={disabled}
+                    openComponent={openComponent}
+                    onOpen={onClose}
+                  />
+                ))}
+              </nav>
+            )}
+          </div>
         </div>
       </aside>
     </>
   );
 }
 
-/** Stored pins cross a JSON boundary and can outlive a component registration. */
-function isDemoComponentId(id: string): id is keyof typeof componentMap {
-  return Object.hasOwn(componentMap, id);
-}
-
-/** Validate saved inputs before rendering a summary or restoring its invocation. */
 function PinnedComponentItem({
   pin,
   disabled,
-  restoreComponent,
+  openComponent,
   onOpen,
 }: {
-  pin: PinnedIDIComponent;
+  pin: DemoPinnedComponent;
   disabled: boolean;
-  restoreComponent: RestoreComponent<typeof componentMap>;
+  openComponent: OpenComponent<typeof componentMap>;
   onOpen: () => void;
 }) {
-  const { componentId } = pin;
-  if (!isDemoComponentId(componentId)) return null;
+  const { componentId, componentInput } = pin;
   const component = componentMap[componentId];
-  const input = component.inputSchema.safeParse(pin.componentInput);
-  const state =
-    pin.componentInputState === undefined
-      ? undefined
-      : component.inputSchema.safeParse(pin.componentInputState);
-  if (!input.success || (state && !state.success)) return null;
-  const snapshot = {
-    componentInput: input.data,
-    ...(state?.success ? { componentInputState: state.data } : {}),
-  };
+  const savedInput = component.inputSchema.safeParse(componentInput);
+  if (!savedInput.success) return null;
   const Summary = component.componentSummary;
-  const summaryProps = {
-    componentInput: snapshot.componentInputState ?? snapshot.componentInput,
-  };
+  const summaryProps = { componentInput: savedInput.data };
 
   return (
     <Button
@@ -133,9 +116,9 @@ function PinnedComponentItem({
       variant="ghost"
       disabled={disabled}
       title="Reopen with saved inputs"
-      className="h-auto min-h-11 w-full justify-start whitespace-normal border border-sidebar-border px-3 py-3 text-left motion-reduce:transition-none"
+      className="h-auto min-h-11 w-full justify-start whitespace-normal wrap-anywhere border border-sidebar-border px-3 py-3 text-left motion-reduce:transition-none"
       onClick={() => {
-        restoreComponent(componentId, snapshot);
+        openComponent(componentId, savedInput.data);
         onOpen();
       }}
     >

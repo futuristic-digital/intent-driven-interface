@@ -1,31 +1,52 @@
 'use client';
 
 import { defineIDIComponent, schema } from '@intent-driven-interface/frontend';
-import { useId, useRef, useState } from 'react';
+import { useCallback, useId, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '../../ui/button';
-
 import {
   channelLabels,
   channelSchema,
   inputSchema,
+  maxNotificationMessageLength,
+  maxNotificationSubjectLength,
   notificationSchema,
   outputSchema,
   recipientIdSchema,
   recipients,
 } from './delay-notification-contracts';
+import { ShipmentPicker } from './shipment-picker';
+import { useShipmentSelection } from './use-shipment-selection';
+
+const actionTitle = 'Compose delay notification';
+const deliverySimulationNotice = 'Delivery remains simulated.';
+
 const fieldClassName =
   'min-h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none';
 
+function focusPreviewHeading(heading: HTMLHeadingElement | null) {
+  heading?.focus();
+}
+
 /** Prepare a draft, require human review, and return a simulated outcome only. */
 export const composeDelayNotification = defineIDIComponent({
+  title: actionTitle,
   description:
-    'Compose a delivery-delay notification for human review. Use selectShipment first if the shipment ID is unknown. Prepare editable subject and message text using only known facts; never invent a delay reason, delivery estimate, or promise. The user chooses a recipient and Email or SMS, edits the draft, then opens a final preview before choosing Send notification or cancelling. Use concise product-facing language without demo or simulation disclaimers. The send action records the reviewed notification without calling a delivery provider or changing the shipment.',
+    'Open an editable delivery-delay notification using only known facts. The user can choose a shipment if needed, select a fictional recipient and Email or SMS, edit the draft, then review the final preview before confirming a simulated send or cancelling. No message is sent and no shipment is changed.',
   inputSchema,
+  inputExamples: [
+    {
+      shipmentId: null,
+      recipientId: 'alex',
+      channel: 'sms',
+      subject: '',
+      message: 'Hi, your delivery is delayed. We’re sorry for the inconvenience.',
+    },
+  ],
   outputSchema,
   component: function ComposeDelayNotification({
     componentInput,
-    setComponentInputState,
+    setComponentInput,
     closeComponent,
   }) {
     const id = useId();
@@ -35,6 +56,13 @@ export const composeDelayNotification = defineIDIComponent({
     const [busy, setBusy] = useState<'simulated' | 'cancelled' | null>(null);
     const [error, setError] = useState<string | null>(null);
     const finishing = useRef(false);
+    const returningFromPreview = useRef(false);
+    const previewButtonRef = useCallback((button: HTMLButtonElement | null) => {
+      if (button && returningFromPreview.current) {
+        returningFromPreview.current = false;
+        button.focus();
+      }
+    }, []);
     const recipient =
       componentInput.recipientId === null
         ? null
@@ -49,7 +77,7 @@ export const composeDelayNotification = defineIDIComponent({
     function updateDraft(changes: Partial<typeof componentInput>) {
       setError(null);
       setPreview(null);
-      setComponentInputState((previous) => ({ ...previous, ...changes }));
+      setComponentInput((previous) => ({ ...previous, ...changes }));
     }
 
     async function finish(output: schema.infer<typeof outputSchema>) {
@@ -70,20 +98,48 @@ export const composeDelayNotification = defineIDIComponent({
       }
     }
 
+    function cancelNotification(shipmentId: string | null) {
+      void finish({ status: 'cancelled', shipmentId });
+    }
+
+    const { shipment, chooseShipment, headingRef } = useShipmentSelection(
+      componentInput.shipmentId,
+      (shipmentId) => updateDraft({ shipmentId })
+    );
+
+    if (!shipment) {
+      return (
+        <ShipmentPicker
+          title={actionTitle}
+          label="Choose a shipment for the delay notice"
+          onSelect={chooseShipment}
+          cancel={{
+            label: 'Cancel notification',
+            variant: 'ghost',
+            pending: busy === 'cancelled',
+            error,
+            onCancel: cancelNotification,
+          }}
+        />
+      );
+    }
+
     return (
       <section
-        aria-label="Compose delay notification"
+        aria-label={actionTitle}
         aria-busy={busy !== null}
         className="space-y-4 rounded-lg border border-border bg-card p-4 text-card-foreground"
       >
         <header className="space-y-1">
-          <h3 className="font-semibold">Delay notification</h3>
+          <h3 ref={headingRef} tabIndex={-1} className="font-semibold">
+            {actionTitle}
+          </h3>
           <p className="wrap-break-word text-sm text-muted-foreground">
-            Shipment {componentInput.shipmentId}
+            Shipment {shipment.id}
           </p>
-          <p className="text-xs text-muted-foreground">
-            AI-prepared draft · Review and personalize before sending.
-          </p>
+          {preview === null && (
+            <p className="text-xs text-muted-foreground">Draft</p>
+          )}
         </header>
 
         {preview === null ? (
@@ -188,6 +244,7 @@ export const composeDelayNotification = defineIDIComponent({
                 <input
                   id={`${id}-subject`}
                   type="text"
+                  maxLength={maxNotificationSubjectLength}
                   value={componentInput.subject}
                   disabled={componentInput.channel === 'sms'}
                   required={componentInput.channel === 'email'}
@@ -208,6 +265,7 @@ export const composeDelayNotification = defineIDIComponent({
                   id={`${id}-message`}
                   required
                   rows={6}
+                  maxLength={maxNotificationMessageLength}
                   value={componentInput.message}
                   aria-describedby={`${id}-message-help`}
                   onChange={(event) =>
@@ -226,6 +284,7 @@ export const composeDelayNotification = defineIDIComponent({
             </fieldset>
             <div className="flex justify-end">
               <Button
+                ref={previewButtonRef}
                 type="submit"
                 disabled={busy !== null || !canPreview}
                 className="motion-reduce:transition-none"
@@ -245,8 +304,8 @@ export const composeDelayNotification = defineIDIComponent({
             >
               <h4
                 tabIndex={-1}
-                ref={(element) => element?.focus()}
-                className="text-sm font-semibold focus-visible:outline-none"
+                ref={focusPreviewHeading}
+                className="text-sm font-semibold"
               >
                 Final preview · {channelLabels[preview.channel]}
               </h4>
@@ -271,7 +330,8 @@ export const composeDelayNotification = defineIDIComponent({
               </p>
             </section>
             <p className="text-xs text-muted-foreground">
-              Review the recipient and message before sending.
+              Review the recipient and message before sending.{' '}
+              {deliverySimulationNotice}
             </p>
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
               <Button
@@ -280,6 +340,7 @@ export const composeDelayNotification = defineIDIComponent({
                 disabled={busy !== null}
                 className="motion-reduce:transition-none"
                 onClick={() => {
+                  returningFromPreview.current = true;
                   setPreview(null);
                   setError(null);
                 }}
@@ -288,12 +349,13 @@ export const composeDelayNotification = defineIDIComponent({
               </Button>
               <Button
                 type="button"
-                disabled={busy !== null}
+                disabled={busy === 'cancelled'}
+                aria-disabled={busy === 'simulated'}
                 className="motion-reduce:transition-none"
                 onClick={() =>
                   void finish({
                     status: 'simulated',
-                    shipmentId: componentInput.shipmentId,
+                    shipmentId: shipment.id,
                     notification: preview,
                   })
                 }
@@ -317,14 +379,10 @@ export const composeDelayNotification = defineIDIComponent({
           <Button
             type="button"
             variant="ghost"
-            disabled={busy !== null}
+            disabled={busy === 'simulated'}
+            aria-disabled={busy === 'cancelled'}
             className="motion-reduce:transition-none"
-            onClick={() =>
-              void finish({
-                status: 'cancelled',
-                shipmentId: componentInput.shipmentId,
-              })
-            }
+            onClick={() => cancelNotification(shipment.id)}
           >
             {busy === 'cancelled' && (
               <Loader2
@@ -341,8 +399,9 @@ export const composeDelayNotification = defineIDIComponent({
   componentSummary: function DelayNotificationSummary({ componentInput }) {
     return (
       <span>
-        Delay notification · {componentInput.shipmentId} ·{' '}
-        {channelLabels[componentInput.channel]}
+        {actionTitle}
+        {componentInput.shipmentId ? ` · ${componentInput.shipmentId}` : ''}
+        {` · ${channelLabels[componentInput.channel]}`}
         {componentInput.recipientId
           ? ` · ${recipients[componentInput.recipientId].name}`
           : ' · No recipient selected'}
@@ -354,7 +413,7 @@ export const composeDelayNotification = defineIDIComponent({
       <span>
         {output.status === 'cancelled'
           ? 'Delay notification cancelled'
-          : `${channelLabels[output.notification.channel]} sent to ${output.notification.recipientName}`}
+          : `${channelLabels[output.notification.channel]} · ${output.notification.recipientName} · ${deliverySimulationNotice}`}
       </span>
     );
   },

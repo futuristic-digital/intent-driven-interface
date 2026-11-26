@@ -1,37 +1,39 @@
 'use client';
 
-import { useState } from 'react';
-import { Menu, Truck, Wifi, Shield } from 'lucide-react';
+import type { Ref } from 'react';
+import { Menu, Truck } from 'lucide-react';
+
 import { Button } from '@/ui/button';
 
 /** Keeps navigation available whether the pinned-components panel is open or closed. */
 export function ChatHeader({
+  sidebarId,
+  toggleRef,
   isSidebarOpen,
   onToggleSidebar,
 }: {
+  sidebarId: string;
+  toggleRef: Ref<HTMLButtonElement>;
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
 }) {
-  const [isOnline] = useState(true);
 
   return (
-    <header className="relative z-30 flex shrink-0 items-center justify-between border-b border-border/50 bg-card/50 px-4 py-3 backdrop-blur-sm font-mono">
+    <header className="relative z-30 flex shrink-0 items-center border-b border-border/50 bg-card/50 px-4 py-3 backdrop-blur-sm font-mono">
       <div className="flex items-center gap-3">
         {/* Menu */}
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          id="pinned-components-toggle"
-          aria-controls="pinned-components-panel"
+          ref={toggleRef}
+          aria-controls={sidebarId}
           aria-expanded={isSidebarOpen}
           onClick={onToggleSidebar}
         >
           <Menu className="h-5 w-5" aria-hidden="true" />
           <span className="sr-only">
-            {isSidebarOpen
-              ? 'Close pinned components'
-              : 'Open pinned components'}
+            {isSidebarOpen ? 'Close workspace' : 'Open workspace'}
           </span>
         </Button>
 
@@ -39,10 +41,10 @@ export function ChatHeader({
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 border border-primary/30">
-              <Truck className="h-5 w-5 text-primary" />
+              <Truck className="h-5 w-5 text-primary" aria-hidden="true" />
             </div>
             <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex h-3 w-3 rounded-full bg-primary" />
             </span>
           </div>
@@ -57,36 +59,6 @@ export function ChatHeader({
         </div>
       </div>
 
-      {/* Status Indicators */}
-      <div className="flex items-center">
-        <div className="hidden sm:flex items-center gap-4">
-          <StatusIndicator icon={Wifi} label="NETWORK" active={isOnline} />
-          <StatusIndicator icon={Shield} label="SECURE" active />
-        </div>
-      </div>
     </header>
-  );
-}
-
-function StatusIndicator({
-  icon: Icon,
-  label,
-  active,
-}: {
-  icon: typeof Wifi;
-  label: string;
-  active: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <Icon
-        className={`h-3.5 w-3.5 ${
-          active ? 'text-primary' : 'text-muted-foreground'
-        }`}
-      />
-      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-        {label}
-      </span>
-    </div>
   );
 }

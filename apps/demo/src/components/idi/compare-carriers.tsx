@@ -4,6 +4,12 @@ import { defineIDIComponent, schema } from '@intent-driven-interface/frontend';
 import { useId, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '../../ui/button';
+import { getCalendarDate } from './berlin-calendar';
+import { shipmentIdInputSchema } from './shipment-input';
+import { ShipmentPicker } from './shipment-picker';
+import { useShipmentSelection } from './use-shipment-selection';
+
+const actionTitle = 'Compare carriers';
 
 // Fictional quote contracts and deterministic calendar-day pricing.
 const quoteIdSchema = schema.enum([
@@ -48,13 +54,13 @@ const carrierRates: Record<
   },
 };
 
-/** UTC date-only arithmetic keeps calendar days independent of timezone and DST. */
 function getQuotes(dispatchDate: string): Quote[] {
   return quoteIdSchema.options.map((id) => {
     const { calendarDays, ...rate } = carrierRates[id];
-    const delivery = new Date(`${dispatchDate}T00:00:00Z`);
-    delivery.setUTCDate(delivery.getUTCDate() + calendarDays);
-    return { id, ...rate, deliveryDate: delivery.toISOString().split('T')[0] };
+    const deliveryDate = getCalendarDate(dispatchDate, calendarDays)
+      .toISOString()
+      .slice(0, 10);
+    return { id, ...rate, deliveryDate };
   });
 }
 
@@ -78,25 +84,21 @@ const outputSchema = schema.discriminatedUnion('status', [
   }),
   schema.object({
     status: schema.literal('cancelled'),
-    shipmentId: schema.string(),
+    shipmentId: schema.string().nullable(),
   }),
 ]);
 
 /** Compare demo carriers and return an explicit choice, never a shipment mutation. */
 export const compareCarriers = defineIDIComponent({
+  title: actionTitle,
   description:
-    'Compare three carriers by EUR price, delivery date, and service level for a shipment. If the shipment ID is unknown, use selectShipment first. The user can edit an inclusive delivery deadline, select an eligible quote, and confirm or cancel. Dates add calendar days (including weekends), not business days. Confirmation records the selected quote. No matching quotes means no selection can be confirmed.',
+    'Open a comparison of three fictional carrier quotes by EUR price, delivery date, and service level. The user can choose a shipment if needed, edit the inclusive delivery deadline, then confirm an eligible quote or cancel. Confirmation records the quote without booking a carrier.',
   inputSchema: schema.object({
-    shipmentId: schema
-      .string()
-      .min(1)
-      .describe(
-        'Shipment ID supplied by the user or selectShipment. Use selectShipment first if unknown; never invent an ID.'
-      ),
+    shipmentId: shipmentIdInputSchema,
     dispatchDate: schema.iso
       .date()
       .describe(
-        'Required dispatch date, YYYY-MM-DD. Use today if no dispatch date is requested. Resolve relative dates using the browser time and timezone supplied with this conversation. Delivery is dispatch plus 5, 3, or 1 calendar days, including weekends.'
+        'Dispatch date in YYYY-MM-DD. Use today in Europe/Berlin if no dispatch date is requested. Delivery is dispatch plus 5, 3, or 1 calendar days, including weekends. Example dates illustrate the format and deadline arithmetic, not dates to reuse.'
       ),
     deliverBy: schema.iso
       .date()
@@ -110,15 +112,50 @@ export const compareCarriers = defineIDIComponent({
         'Preselect only a requested quote: meadow-economy (Meadow Parcel, EUR 8.90, +5 calendar days), harbor-standard (Harbor Dispatch, EUR 13.50, +3), or comet-express (Comet Courier, EUR 22.00, +1). Null means no choice. Ineligible quotes cannot be confirmed; never silently substitute another.'
       ),
   }),
+  inputExamples: [
+    {
+      shipmentId: null,
+      dispatchDate: '2026-04-06',
+      deliverBy: '2026-04-09',
+      selectedQuoteId: 'harbor-standard',
+    },
+  ],
   outputSchema,
   component: function CompareCarriers({
     componentInput,
-    setComponentInputState,
+    setComponentInput,
     closeComponent,
   }) {
     const id = useId();
     const [busy, setBusy] = useState<'confirmed' | 'cancelled' | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const { shipment, chooseShipment, headingRef } = useShipmentSelection(
+      componentInput.shipmentId,
+      (shipmentId) =>
+        setComponentInput((previous) => ({ ...previous, shipmentId }))
+    );
+
+    function cancelComparison(shipmentId: string | null) {
+      void finish({ status: 'cancelled', shipmentId });
+    }
+
+    if (!shipment) {
+      return (
+        <ShipmentPicker
+          title={actionTitle}
+          label="Choose a shipment to compare carriers for"
+          onSelect={chooseShipment}
+          cancel={{
+            label: 'Cancel',
+            variant: 'outline',
+            pending: busy === 'cancelled',
+            error,
+            onCancel: cancelComparison,
+          }}
+        />
+      );
+    }
+
     const quotes = getQuotes(componentInput.dispatchDate);
     const selectedQuote = quotes.find(
       (quote) =>
@@ -129,16 +166,17 @@ export const compareCarriers = defineIDIComponent({
       meetsDeadline(quote, componentInput.deliverBy)
     ).length;
 
-    // Only the final explicit action closes the UI and resumes the conversation.
     async function finish(output: schema.infer<typeof outputSchema>) {
+      if (busy !== null) return;
       setBusy(output.status);
       setError(null);
       try {
-        await closeComponent({ setComponentOutput: output, agentFollowUp: false });
+        await closeComponent({
+          setComponentOutput: output,
+          agentFollowUp: false,
+        });
       } catch {
-        setError(
-          'Could not save your selection. Please try again.'
-        );
+        setError('Could not save your selection. Please try again.');
       } finally {
         setBusy(null);
       }
@@ -146,14 +184,16 @@ export const compareCarriers = defineIDIComponent({
 
     return (
       <section
-        aria-label="Compare carriers"
+        aria-label={actionTitle}
         aria-busy={busy !== null}
         className="space-y-4 rounded-lg border border-border bg-card p-4 text-card-foreground"
       >
         <header className="space-y-1">
-          <h3 className="font-semibold">Compare carriers</h3>
+          <h3 ref={headingRef} tabIndex={-1} className="font-semibold">
+            {actionTitle}
+          </h3>
           <p className="wrap-break-word text-sm text-muted-foreground">
-            Shipment {componentInput.shipmentId} · Dispatch{' '}
+            Shipment {shipment.id} · Dispatch{' '}
             <time dateTime={componentInput.dispatchDate}>
               {componentInput.dispatchDate}
             </time>
@@ -188,7 +228,7 @@ export const compareCarriers = defineIDIComponent({
                 if (!parsed.success) return;
                 const deliverBy = parsed.data;
                 setError(null);
-                setComponentInputState((previous) => {
+                setComponentInput((previous) => {
                   const previousQuote = getQuotes(previous.dispatchDate).find(
                     (quote) => quote.id === previous.selectedQuoteId
                   );
@@ -238,7 +278,7 @@ export const compareCarriers = defineIDIComponent({
                     disabled={!available}
                     onChange={() => {
                       setError(null);
-                      setComponentInputState((previous) => ({
+                      setComponentInput((previous) => ({
                         ...previous,
                         selectedQuoteId: quote.id,
                       }));
@@ -290,18 +330,14 @@ export const compareCarriers = defineIDIComponent({
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="outline"
-            disabled={busy !== null}
+            disabled={busy === 'confirmed'}
+            aria-disabled={busy === 'cancelled'}
             className="motion-reduce:transition-none"
-            onClick={() =>
-              void finish({
-                status: 'cancelled',
-                shipmentId: componentInput.shipmentId,
-              })
-            }
+            onClick={() => cancelComparison(shipment.id)}
           >
             {busy === 'cancelled' && (
               <Loader2
@@ -313,13 +349,14 @@ export const compareCarriers = defineIDIComponent({
           </Button>
           <Button
             type="button"
-            disabled={busy !== null || selectedQuote === undefined}
+            disabled={busy === 'cancelled' || selectedQuote === undefined}
+            aria-disabled={busy === 'confirmed'}
             className="motion-reduce:transition-none"
             onClick={() => {
               if (selectedQuote) {
                 void finish({
                   status: 'confirmed',
-                  shipmentId: componentInput.shipmentId,
+                  shipmentId: shipment.id,
                   quote: selectedQuote,
                 });
               }
@@ -340,8 +377,9 @@ export const compareCarriers = defineIDIComponent({
   componentSummary: function CarrierSummary({ componentInput }) {
     return (
       <span>
-        Carriers · {componentInput.shipmentId} · Dispatch{' '}
-        {componentInput.dispatchDate}
+        Carriers
+        {componentInput.shipmentId ? ` · ${componentInput.shipmentId}` : ''}
+        {` · Dispatch ${componentInput.dispatchDate}`}
         {componentInput.deliverBy ? ` · By ${componentInput.deliverBy}` : ''}
         {componentInput.selectedQuoteId
           ? ` · ${carrierRates[componentInput.selectedQuoteId].carrierName}`

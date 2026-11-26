@@ -1,19 +1,83 @@
+import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import { useDemoShipments } from '../domain/demo-shipments-context';
-import type { Shipment } from '../domain/shipment';
-import { Map, Marker } from './map';
-import { Check } from 'lucide-react';
+import type { ShipmentState } from '../domain/shipment';
+import { Button } from '../ui/button';
+import type { Marker } from './map';
+
+const ShipmentMap = dynamic(() => import('./map').then(({ Map }) => Map), {
+  ssr: false,
+  loading: () => (
+    <div
+      role="status"
+      className="flex h-96 items-center justify-center rounded-lg bg-muted/80 text-sm font-medium text-muted-foreground"
+    >
+      Loading map…
+    </div>
+  ),
+});
+
+// Vienna, Austria; the map fits the displayed shipments after loading.
+const initialMapView: { position: [number, number]; zoom: number } = {
+  position: [16.37, 48.21],
+  zoom: 9,
+};
+
+type ShipmentActions = {
+  actionsDisabled: boolean;
+  onViewDetails: (shipmentId: string) => void;
+  onUpdateDelivery: (shipmentId: string) => void;
+};
+
+function ShipmentActionButtons({
+  shipmentId,
+  actionsDisabled,
+  onViewDetails,
+  onUpdateDelivery,
+}: ShipmentActions & { shipmentId: string }) {
+  return (
+    <div
+      role="group"
+      aria-label={`Actions for shipment ${shipmentId}`}
+      className="mt-1 flex flex-col items-start gap-1"
+    >
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        aria-disabled={actionsDisabled}
+        onClick={() => {
+          if (!actionsDisabled) onViewDetails(shipmentId);
+        }}
+      >
+        View details
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        aria-disabled={actionsDisabled}
+        onClick={() => {
+          if (!actionsDisabled) onUpdateDelivery(shipmentId);
+        }}
+      >
+        Update delivery details
+      </Button>
+    </div>
+  );
+}
 
 export function Shipments({
   displayType,
   filter,
-  onSelect,
-  selectedShipmentId,
-}: {
+  onMapUnavailable,
+  actionsDisabled,
+  onViewDetails,
+  onUpdateDelivery,
+}: ShipmentActions & {
   displayType: 'map' | 'list';
-  filter: 'inTransit' | 'delayed' | 'delivered';
-  onSelect?: (shipment: Shipment) => void;
-  selectedShipmentId?: string;
+  filter: ShipmentState;
+  onMapUnavailable: () => void;
 }) {
   const { shipments: allShipments } = useDemoShipments();
   const shipments = useMemo(
@@ -42,10 +106,11 @@ export function Shipments({
 
       const position = shipment.actualPosition || shipment.origin.position;
 
+      const label = `Shipment ${shipment.id}`;
       const popup = (
         <div className="text-xs space-y-1 max-w-[220px] text-muted-foreground relative pr-8">
           <div className="font-semibold text-sm mb-1">
-            Shipment {shipment.id}
+            {label}
           </div>
           <div>
             <span className="font-medium">State:</span>{' '}
@@ -63,42 +128,32 @@ export function Shipments({
             <span className="font-medium">ETA:</span>{' '}
             {formatEta(shipment.estimatedDeliveryDate)}
           </div>
-          {onSelect && (
-            <div className="pt-2 flex justify-start">
-              {selectedShipmentId === undefined ? (
-                <button
-                  type="button"
-                  className="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  onClick={() => onSelect(shipment)}
-                >
-                  Select
-                </button>
-              ) : selectedShipmentId === shipment.id ? (
-                <div className="inline-flex items-center rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-600">
-                  <Check className="mr-1.5 h-3 w-3" />
-                  Selected
-                </div>
-              ) : null}
-            </div>
-          )}
+          <ShipmentActionButtons
+            shipmentId={shipment.id}
+            actionsDisabled={actionsDisabled}
+            onViewDetails={onViewDetails}
+            onUpdateDelivery={onUpdateDelivery}
+          />
         </div>
       );
 
       return {
+        label,
         position,
         bgColor,
         borderColor,
         popup,
       };
     });
-  }, [displayType, shipments, onSelect, selectedShipmentId]);
+  }, [displayType, shipments, actionsDisabled, onViewDetails, onUpdateDelivery]);
 
   if (displayType === 'map') {
     return (
       <div className="relative">
-        <Map
-          initial={{ position: [16.37, 48.21], zoom: 9 }} // Vienna, Austria
+        <ShipmentMap
+          initial={initialMapView}
           markers={markers}
+          onUnavailable={onMapUnavailable}
         />
       </div>
     );
@@ -106,7 +161,12 @@ export function Shipments({
 
   return (
     <div className="relative">
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div
+        role={shipments.length > 0 ? 'region' : undefined}
+        aria-label={shipments.length > 0 ? 'Shipments' : undefined}
+        tabIndex={shipments.length > 0 ? 0 : undefined}
+        className="overflow-x-auto rounded-lg border bg-card focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+      >
         {shipments.length === 0 ? (
           <div className="p-4 text-sm text-muted-foreground">
             No shipments found.
@@ -115,11 +175,19 @@ export function Shipments({
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 text-left">Shipment</th>
-                <th className="px-4 py-3 text-left">State</th>
-                <th className="px-4 py-3 text-left">Route</th>
-                <th className="px-4 py-3 text-left">ETA</th>
-                {onSelect && <th className="px-4 py-3 text-right"></th>}
+                <th scope="col" className="px-4 py-3 text-left">
+                  Shipment
+                </th>
+                <th scope="col" className="px-4 py-3 text-left">
+                  State
+                </th>
+                <th scope="col" className="px-4 py-3 text-left">
+                  Route
+                </th>
+                <th scope="col" className="px-4 py-3 text-left">
+                  ETA
+                </th>
+
               </tr>
             </thead>
             <tbody>
@@ -133,9 +201,9 @@ export function Shipments({
                     : 'inTransit';
 
                 const statusClasses = isDelivered
-                  ? 'bg-green-500/10 text-green-500 border border-green-500/20'
+                  ? 'bg-green-500/10 text-foreground border border-green-500/20'
                   : isDelayed
-                    ? 'bg-red-500/10 text-red-500 border border-red-500/20'
+                    ? 'bg-red-500/10 text-foreground border border-red-500/20'
                     : 'bg-accent/10 text-muted-foreground border border-accent/20';
 
                 return (
@@ -143,7 +211,10 @@ export function Shipments({
                     key={shipment.id}
                     className="border-t border-border/60 hover:bg-muted/50"
                   >
-                    <td className="px-4 py-3 align-top">
+                    <th
+                      scope="row"
+                      className="px-4 py-3 text-left align-top font-normal"
+                    >
                       <div className="flex flex-col gap-0.5">
                         <span className="font-medium text-foreground">
                           Shipment {shipment.id}
@@ -153,8 +224,14 @@ export function Shipments({
                           {shipment.destination.city},{' '}
                           {shipment.destination.country}
                         </span>
+                        <ShipmentActionButtons
+                          shipmentId={shipment.id}
+                          actionsDisabled={actionsDisabled}
+                          onViewDetails={onViewDetails}
+                          onUpdateDelivery={onUpdateDelivery}
+                        />
                       </div>
-                    </td>
+                    </th>
                     <td className="px-4 py-3 align-top">
                       <div
                         className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses}`}
@@ -179,24 +256,7 @@ export function Shipments({
                         {formatEta(shipment.estimatedDeliveryDate)}
                       </span>
                     </td>
-                    {onSelect && (
-                      <td className="px-4 py-3 align-top text-right">
-                        {selectedShipmentId === undefined ? (
-                          <button
-                            type="button"
-                            className="inline-flex items-center rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                            onClick={() => onSelect(shipment)}
-                          >
-                            Select
-                          </button>
-                        ) : selectedShipmentId === shipment.id ? (
-                          <div className="inline-flex items-center rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600">
-                            <Check className="mr-1.5 h-3.5 w-3.5" />
-                            Selected
-                          </div>
-                        ) : null}
-                      </td>
-                    )}
+
                   </tr>
                 );
               })}

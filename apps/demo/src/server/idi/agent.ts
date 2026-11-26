@@ -1,15 +1,12 @@
-import { IDIAgent } from '@intent-driven-interface/backend';
+import 'server-only';
+import { IDIAgent, gateway } from '@intent-driven-interface/backend';
+import { upsertDemoChatMessage } from './chat-store';
 
-/** Satisfy the standard IDI persistence contract without storing demo data. */
-export const idiAgent = new IDIAgent({
-  model: { name: 'qwen-3-14b' },
-  async saveMessages() {},
-  async loadMessages() {
-    return { messages: [], hasOlderMessages: false };
-  },
-  async loadPinnedComponents() {
-    return [];
-  },
-  async pinComponent() {},
-  instructions: `You are the logistics assistant in Flowdock.`,
-});
+export function createDemoAgent(chatId: string) {
+  return new IDIAgent({
+    model: gateway('openai/gpt-oss-20b'),
+    providerOptions: { gateway: { order: ['groq'], sort: 'ttft' } },
+    instructions: 'You are the logistics assistant in Flowdock.',
+    onMessageUpdate: (message) => upsertDemoChatMessage(chatId, message),
+  });
+}

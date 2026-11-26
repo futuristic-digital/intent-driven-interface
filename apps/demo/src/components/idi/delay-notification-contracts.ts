@@ -1,4 +1,5 @@
 import { schema } from '@intent-driven-interface/frontend';
+import { shipmentIdInputSchema } from './shipment-input';
 
 // Demo contacts are intentionally independent of shipment data.
 export const recipientIdSchema = schema.enum(['alex', 'sam']);
@@ -15,15 +16,12 @@ export const recipients: Record<
 };
 export const channelSchema = schema.enum(['email', 'sms']);
 export const channelLabels = { email: 'Email', sms: 'SMS' };
+export const maxNotificationSubjectLength = 180;
+export const maxNotificationMessageLength = 1_200;
 
 /** Editable inputs retain the email subject when the user switches to SMS. */
 export const inputSchema = schema.object({
-  shipmentId: schema
-    .string()
-    .min(1)
-    .describe(
-      'Existing shipment ID from the user or selectShipment; never invent one.'
-    ),
+  shipmentId: shipmentIdInputSchema,
   recipientId: recipientIdSchema
     .nullable()
     .describe(
@@ -34,13 +32,15 @@ export const inputSchema = schema.object({
   ),
   subject: schema
     .string()
+    .max(maxNotificationSubjectLength)
     .describe(
-      'AI-prepared email subject describing the delivery delay. Keep editable; retained but not sent for SMS.'
+      'Editable email subject describing the delivery delay. Required as a string, but may start empty. For SMS, pass an empty string unless retaining an existing email subject; the SMS preview excludes it.'
     ),
   message: schema
     .string()
+    .max(maxNotificationMessageLength)
     .describe(
-      'AI-prepared, concise and empathetic delay message. Use a neutral greeting suitable for either recipient. Include only facts known from the conversation; omit unknown reasons and dates. Do not promise compensation or other unapproved actions.'
+      'Editable draft message; may start empty. When drafting, use a neutral greeting and only known facts. Omit unknown reasons and dates, and do not promise compensation or other unapproved actions.'
     ),
 });
 
@@ -48,12 +48,12 @@ export const inputSchema = schema.object({
 const messageSchema = schema.object({
   recipientName: schema.string(),
   destination: schema.string(),
-  message: schema.string().trim().min(1),
+  message: schema.string().trim().min(1).max(maxNotificationMessageLength),
 });
 export const notificationSchema = schema.discriminatedUnion('channel', [
   messageSchema.extend({
     channel: schema.literal('email'),
-    subject: schema.string().trim().min(1),
+    subject: schema.string().trim().min(1).max(maxNotificationSubjectLength),
   }),
   messageSchema.extend({ channel: schema.literal('sms') }),
 ]);
@@ -65,6 +65,6 @@ export const outputSchema = schema.discriminatedUnion('status', [
   }),
   schema.object({
     status: schema.literal('cancelled'),
-    shipmentId: schema.string(),
+    shipmentId: schema.string().nullable(),
   }),
 ]);

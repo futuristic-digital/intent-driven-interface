@@ -31,25 +31,26 @@ export function TextMessageBubble({
       >
         {isAssistant && (
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/30">
-            <Bot className="h-4 w-4 text-primary" />
+            <Bot className="h-4 w-4 text-primary" aria-hidden="true" />
           </div>
         )}
         <div
           className={cn(
-            'max-w-[80%] rounded-2xl px-4 py-3',
+            'min-w-0 max-w-[80%] rounded-2xl px-4 py-3',
             isAssistant
               ? 'bg-card border border-border/50 rounded-tl-sm'
               : 'bg-primary text-primary-foreground rounded-tr-sm'
           )}
         >
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">
+          <p className="whitespace-pre-wrap wrap-break-word text-sm leading-relaxed">
+            <span className="sr-only">{isAssistant ? 'Assistant: ' : 'You: '}</span>
             {textPart.text}
           </p>
         </div>
 
         {!isAssistant && (
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary border border-border/50">
-            <User className="h-4 w-4 text-foreground" />
+            <User className="h-4 w-4 text-foreground" aria-hidden="true" />
           </div>
         )}
       </div>

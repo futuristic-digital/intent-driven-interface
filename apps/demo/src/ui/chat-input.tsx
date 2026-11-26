@@ -4,16 +4,30 @@ import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import { Send, Sparkles } from 'lucide-react';
 import { Button } from '@/ui/button';
 import { cn } from '@/utils/cn';
+import { useDemoAIAvailable } from '../domain/demo-ai-context';
+
+const suggestions = [
+  'Show delayed shipments on a map.',
+  'Choose an afternoon delivery slot for shp-1 next Friday.',
+  'Compare carriers for shp-1 delivering by next Thursday.',
+  'Let the customer know shipment shp-2 is delayed.',
+  'Sign me out.',
+];
 
 export function ChatInput({
   onSendMessage,
   disabled,
+  generationFailed,
+  updateFailed,
 }: {
-  onSendMessage: (text: string) => void;
+  onSendMessage: (text: string) => Promise<void>;
   disabled?: boolean;
+  generationFailed: boolean;
+  updateFailed: boolean;
 }) {
+  const aiAvailable = useDemoAIAvailable();
   const [input, setInput] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
+  const [sendFailed, setSendFailed] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -26,82 +40,103 @@ export function ChatInput({
     }
   }, [input]);
 
-  const handleSubmit = () => {
-    if (input.trim() && !disabled) {
-      onSendMessage(input.trim());
-      setInput('');
+  const handleSubmit = async () => {
+    if (!input.trim() || disabled || !aiAvailable) return;
+    const draft = input;
+    setSendFailed(false);
+    setInput('');
+    try {
+      await onSendMessage(draft.trim());
+    } catch {
+      setInput((current) => current || draft);
+      setSendFailed(true);
     }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      handleSubmit();
+      if (!e.repeat) void handleSubmit();
     }
   };
 
-  const suggestions = [
-    'Show the delayed shipments',
-    'Update a shipment',
-    'Choose a delivery slot',
-    'Compare carriers',
-    'Let the customer know their delivery is delayed.',
-  ];
+  const errorMessage =
+    generationFailed || sendFailed
+      ? 'Flowdock couldn’t generate a reply. Try your prompt again.'
+      : updateFailed
+        ? 'Couldn’t save the latest change in chat. Please try again.'
+        : '';
 
   return (
-    <div className="border-t border-border/50 bg-card/50 backdrop-blur-sm p-4 pb-2">
+    <div className="max-h-1/2 shrink-0 overflow-y-auto border-t border-border/50 bg-card/50 p-4 pb-2 backdrop-blur-sm">
       <div className="mx-auto max-w-3xl">
-        {/* Quick Suggestions */}
-        <div className="mb-3 flex flex-wrap gap-2">
-          {suggestions.map((suggestion) => (
-            <button
-              key={suggestion}
-              onClick={() => setInput(suggestion)}
-              className="flex items-center gap-1.5 rounded-full border border-border/50 bg-secondary/50 px-3 py-1.5 text-xs text-muted-foreground transition-all hover:border-primary/50 hover:bg-primary/10 hover:text-foreground"
+        <p role="alert" className="mb-2 text-sm text-destructive empty:m-0">
+          {errorMessage}
+        </p>
+        {aiAvailable ? (
+          <>
+
+            <div
+              aria-label="Example prompts"
+              className="mb-3 flex gap-2 overflow-x-auto p-1 sm:flex-wrap"
             >
-              <Sparkles className="h-3 w-3" />
-              {suggestion}
-            </button>
-          ))}
-        </div>
+              {suggestions.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    setInput(suggestion);
+                    textareaRef.current?.focus();
+                  }}
+                  className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/50 bg-secondary/50 px-3 py-1.5 text-left text-xs text-muted-foreground transition-all hover:border-primary/50 hover:bg-primary/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+                >
+                  <Sparkles className="size-3 shrink-0" aria-hidden="true" />
+                  {suggestion}
+                </button>
+              ))}
+            </div>
 
-        {/* Input Area */}
-        <div
-          className={cn(
-            'relative flex items-end gap-2 rounded-2xl border bg-input/50 p-2 transition-all duration-200',
-            isFocused
-              ? 'border-primary/50 shadow-[0_0_20px_rgba(0,255,200,0.1)]'
-              : 'border-border/50'
-          )}
-        >
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            placeholder="Enter your query..."
-            className="max-h-[120px] min-h-[40px] flex-1 resize-none bg-transparent py-2 pl-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-            rows={1}
-            disabled={disabled}
-          />
+            {/* Input Area */}
+            <div className="relative flex items-end gap-2 rounded-2xl border border-border/50 bg-input/50 p-2 has-[textarea:focus]:border-ring has-[textarea:focus]:ring-2 has-[textarea:focus]:ring-ring">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                aria-label="Ask Flowdock"
+                placeholder="Ask about a shipment…"
+                className="max-h-[120px] min-h-[40px] min-w-0 flex-1 resize-none bg-transparent py-2 pl-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                rows={1}
+                maxLength={2_000}
+                readOnly={disabled}
+              />
 
-          <Button
-            onClick={handleSubmit}
-            disabled={!input.trim() || disabled}
-            size="icon"
-            className={cn(
-              'h-9 w-9 shrink-0 rounded-xl transition-all',
-              input.trim() && !disabled
-                ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(0,255,200,0.3)]'
-                : 'bg-secondary text-muted-foreground'
-            )}
-          >
-            <Send className="h-4 w-4" />
-            <span className="sr-only">Send message</span>
-          </Button>
-        </div>
+              <Button
+                type="button"
+                onClick={(event) => {
+                  if (event.detail === 0) textareaRef.current?.focus();
+                  void handleSubmit();
+                }}
+                disabled={!input.trim() || disabled}
+                size="icon"
+                className={cn(
+                  'h-9 w-9 shrink-0 rounded-xl transition-all',
+                  input.trim() && !disabled
+                    ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(0,255,200,0.3)]'
+                    : 'bg-secondary text-muted-foreground'
+                )}
+              >
+                <Send className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">Send message</span>
+              </Button>
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Live AI is unavailable.
+          </p>
+        )}
 
         {/* Footer Info */}
         <p className="mt-2 text-center font-mono text-[10px] text-muted-foreground">
@@ -109,7 +144,7 @@ export function ChatInput({
           <a
             href="https://futuristic.digital"
             target="_blank"
-            className="font-montserrat font-bold text-accent"
+            className="font-montserrat font-bold text-primary underline focus-visible:outline-2 focus-visible:outline-ring"
           >
             futuristic
           </a>

@@ -1,26 +1,31 @@
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-import { ReactElement, useEffect, useRef, useState } from 'react';
-import { createRoot } from 'react-dom/client';
 import {
-  Map as MapboxMap,
-  Marker as MapboxMarker,
-  LngLatBounds,
-  Popup,
-} from 'mapbox-gl';
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactElement,
+} from 'react';
+import { createRoot } from 'react-dom/client';
+import { type Map as MapboxMap, LngLatBounds, Popup } from 'mapbox-gl';
 import { mapBox } from '../utils/mapbox';
 
 export type Marker = {
+  label: string;
   position: [number, number];
   bgColor: string;
   borderColor: string;
   popup?: ReactElement;
 };
 
+const MAP_STARTUP_TIMEOUT_MS = 10_000;
+
 export const Map = ({
   initial,
   markers,
   loading,
+  onUnavailable,
 }: {
   initial: {
     position: [number, number];
@@ -28,141 +33,182 @@ export const Map = ({
   };
   markers: Marker[];
   loading?: string;
+  onUnavailable: () => void;
 }) => {
   const mapRef = useRef<MapboxMap>(null);
-  const markersRef = useRef<MapboxMarker[]>([]);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const [loadedMap, setLoadedMap] = useState<MapboxMap | null>(null);
 
-  const mapContainerCallbackRef = (mapContainer: HTMLDivElement) => {
-    if (mapRef.current !== null) return;
+  const mapContainerRef = useCallback(
+    (container: HTMLDivElement | null) => {
+      if (!container) return;
 
-    const map = new mapBox.Map({
-      container: mapContainer,
-      center: initial.position,
-      zoom: initial.zoom,
-    });
-    mapRef.current = map;
-
-    map.on('load', () => setMapLoaded(true));
-  };
-
-  // Update markers on map
-  useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
-
-    // Clear existing markers
-    markersRef.current.forEach((marker) => marker.remove());
-    markersRef.current = [];
-
-    // Collect all positions for bounds calculation
-    const positions: [number, number][] = [];
-
-    // Add markers to the map
-    markers.forEach(({ position, bgColor, borderColor, popup }) => {
-      const [lat, lng] = position;
-      positions.push([lng, lat]);
-
-      let mapboxPopup: Popup | null = null;
-
-      if (popup) {
-        const popupContainer = document.createElement('div');
-        const popupRoot = createRoot(popupContainer);
-        let closePopup: (() => void) | null = null;
-
-        popupRoot.render(
-          <div className="relative">
-            {popup}
-            <button
-              type="button"
-              className="popup-close-btn absolute top-0 right-0 flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
-              aria-label="Close"
-              onClick={() => closePopup?.()}
-            >
-              <span className="text-lg leading-none">×</span>
-            </button>
-          </div>
-        );
-
-        mapboxPopup = new Popup({
-          closeOnClick: true,
-          closeButton: false,
-        }).setDOMContent(popupContainer);
-
-        closePopup = () => mapboxPopup?.remove();
+      if (!mapBox.accessToken?.trim()) {
+        onUnavailable();
+        return;
       }
 
-      // Create custom marker element
-      const markerElement = document.createElement('div');
-      const markerRoot = createRoot(markerElement);
-      markerRoot.render(
-        <button className="flex h-6 w-6 items-center justify-center transition-all duration-300 hover:scale-125 hover:cursor-pointer">
-          <div className="relative">
-            <div
-              className={`absolute -inset-2 animate-ping rounded-full ${bgColor}`}
-            />
-            <div
-              className={`relative h-4 w-4 rounded-full border-2 ${borderColor}`}
-            >
-              <div className={`absolute inset-0 rounded-full ${bgColor}`} />
-            </div>
-          </div>
-        </button>
+      let map: MapboxMap;
+      try {
+        map = new mapBox.Map({
+          container,
+          center: initial.position,
+          zoom: initial.zoom,
+        });
+      } catch {
+        onUnavailable();
+        return;
+      }
+
+      mapRef.current = map;
+      const startupTimeout = window.setTimeout(
+        handleStartupFailure,
+        MAP_STARTUP_TIMEOUT_MS
       );
+      function stopWatchingStartup() {
+        window.clearTimeout(startupTimeout);
+        map.off('error', handleStartupFailure);
+        map.off('load', handleLoad);
+      }
+      function handleStartupFailure() {
+        stopWatchingStartup();
+        onUnavailable();
+      }
+      function handleLoad() {
+        stopWatchingStartup();
+        setLoadedMap(map);
+      }
+      map.on('error', handleStartupFailure);
+      map.on('load', handleLoad);
+      // Toggling pinned components changes the map's width without a window resize.
+      const resizeObserver = new ResizeObserver(() => map.resize());
+      resizeObserver.observe(container);
 
-      // Add marker to map with popup
-      const mapBoxMarker = new mapBox.Marker({
-        element: markerElement,
-        anchor: 'center',
-      })
-        .setLngLat([lng, lat])
-        .setPopup(mapboxPopup)
-        .addTo(mapRef.current!);
+      return () => {
+        stopWatchingStartup();
+        resizeObserver.disconnect();
+        mapRef.current = null;
+        map.remove();
+      };
+    },
+    [initial, onUnavailable]
+  );
 
-      // Ensure popup toggles on marker click
-      mapBoxMarker.getElement().addEventListener('click', () => {
-        mapBoxMarker.togglePopup();
-      });
-      markersRef.current.push(mapBoxMarker);
+  useEffect(() => {
+    if (!loadedMap || loadedMap !== mapRef.current) return;
+
+    const bounds = new LngLatBounds();
+    const removeMarkers = markers.map((marker) => {
+      const [lat, lng] = marker.position;
+      bounds.extend([lng, lat]);
+      return addMarker(loadedMap, marker);
     });
 
-    // Fit map bounds to include all markers
-    if (positions.length > 0) {
-      const bounds = new LngLatBounds();
-      positions.forEach(([lng, lat]) => {
-        bounds.extend([lng, lat]);
-      });
-
-      mapRef.current.fitBounds(bounds, {
-        padding: { top: 50, bottom: 50, left: 50, right: 50 },
-        maxZoom: 12, // Prevent zooming in too much
+    if (markers.length > 0) {
+      loadedMap.fitBounds(bounds, {
+        padding: 50,
+        maxZoom: 12,
       });
     }
-  }, [markers, mapLoaded]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      markersRef.current.forEach((marker) => marker.remove());
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
-  }, []);
+    return () => removeMarkers.forEach((remove) => remove());
+  }, [loadedMap, markers]);
 
   return (
-    <div className="relative  h-96">
-      {(loading || !mapLoaded) && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-muted/80 backdrop-blur-sm">
+    <div className="relative h-96">
+      {(loading || !loadedMap) && (
+        <div
+          role="status"
+          className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-muted/80 backdrop-blur-sm"
+        >
           <div className="flex flex-col items-center gap-3">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            <div
+              aria-hidden="true"
+              className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent motion-safe:animate-spin"
+            />
             <span className="text-sm font-medium text-muted-foreground">
               {loading || 'Loading map…'}
             </span>
           </div>
         </div>
       )}
-      <div ref={mapContainerCallbackRef} className="h-full w-full" />
+      <div ref={mapContainerRef} inert={!loadedMap} className="h-full w-full" />
     </div>
   );
 };
+
+function addMarker(
+  map: MapboxMap,
+  { label, position, bgColor, borderColor, popup }: Marker
+) {
+  const [lat, lng] = position;
+  const markerElement = document.createElement('div');
+  markerElement.setAttribute('aria-label', label);
+  markerElement.className =
+    'group flex size-6 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring';
+  const dot = document.createElement('span');
+  dot.setAttribute('aria-hidden', 'true');
+  dot.className = `relative size-4 rounded-full border-2 ${borderColor} ${bgColor}`;
+  if (popup) {
+    markerElement.classList.add('cursor-pointer');
+    dot.classList.add(
+      'motion-safe:transition-transform',
+      'motion-safe:group-hover:scale-125'
+    );
+  }
+  const pulse = document.createElement('span');
+  pulse.className = `absolute -inset-2 rounded-full motion-safe:animate-ping ${bgColor}`;
+  dot.append(pulse);
+  markerElement.append(dot);
+
+  const marker = new mapBox.Marker({
+    element: markerElement,
+    anchor: 'center',
+  }).setLngLat([lng, lat]);
+  const popupContainer = popup ? document.createElement('div') : null;
+  const popupRoot = popupContainer ? createRoot(popupContainer) : null;
+  if (popupContainer && popupRoot) {
+    const mapPopup = new Popup({
+      closeOnClick: true,
+      closeButton: false,
+      className:
+        '[&_.mapboxgl-popup-content]:bg-popover [&_.mapboxgl-popup-content]:text-popover-foreground',
+    }).setDOMContent(popupContainer);
+    function closePopup() {
+      mapPopup.remove();
+      markerElement.focus();
+    }
+    mapPopup.on('close', () =>
+      markerElement.setAttribute('aria-expanded', 'false')
+    );
+    popupRoot.render(
+      <div
+        className="relative"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            closePopup();
+          }
+        }}
+      >
+        {popup}
+        <button
+          type="button"
+          className="absolute top-0 right-0 flex size-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+          aria-label="Close"
+          onClick={closePopup}
+        >
+          <span aria-hidden="true" className="text-lg leading-none">×</span>
+        </button>
+      </div>
+    );
+    // Mapbox supplies keyboard activation and a single tab stop for this marker.
+    marker.setPopup(mapPopup);
+  }
+  marker.addTo(map);
+
+  return () => {
+    marker.remove();
+    // Separate React roots cannot unmount synchronously during the parent commit.
+    if (popupRoot) queueMicrotask(() => popupRoot.unmount());
+  };
+}

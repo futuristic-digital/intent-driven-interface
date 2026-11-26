@@ -1,10 +1,5 @@
-import { App } from '../app';
-import { DemoShipmentsProvider } from '../domain/demo-shipments';
+import { ChatWorkspace } from '../chat-workspace';
 
 export default function Page() {
-  return (
-    <DemoShipmentsProvider>
-      <App />
-    </DemoShipmentsProvider>
-  );
+  return <ChatWorkspace />;
 }

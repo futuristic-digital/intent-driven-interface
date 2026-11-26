@@ -82,6 +82,7 @@ export async function POST(request: Request): Promise<Response> {
   const body: unknown = await request.json().catch(() => null);
   const agent = new IDIAgent({
     model: gateway('openai/gpt-oss-20b'),
+    providerOptions: { gateway: { order: ['groq'], sort: 'ttft' } },
     instructions: 'Be a kind, quick-witted guide. Help first, joke when it fits.',
     onMessageUpdate: (message) => messagesTable.upsert(user.id, message),
   });
@@ -95,6 +96,7 @@ IDI requires an [AI SDK](https://ai-sdk.dev) model. The example uses [Vercel AI 
 
 **IDI doesn’t need a frontier model.** Its main job is to pick a component from the list your app registers and fill in its inputs, not build a UI from scratch. Prefer a small, fast model that makes reliable tool calls and keeps replies brief. [`gpt-oss-20b`](https://vercel.com/ai-gateway/models/openai/gpt-oss-20b) is our top pick for this job: it’s fast, inexpensive and well suited to a focused task. It’s open-weight: you can self-host it, or you can run it locally on a midrange machine with about 16 GB of memory available to the model.
 
+For `gpt-oss-20b` on Vercel AI Gateway, we recommend the routing options shown above: prefer Groq and sort by time to first token (`ttft`).
 
 To use another provider or a locally hosted model, pass its AI SDK model instance as `model`. Set optional generation settings such as `temperature`, `reasoning`, `maxOutputTokens`, and `providerOptions` alongside `model`.
 

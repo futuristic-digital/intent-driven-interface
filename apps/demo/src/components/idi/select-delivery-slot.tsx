@@ -3,7 +3,18 @@
 import { defineIDIComponent, schema } from '@intent-driven-interface/frontend';
 import { useId, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useDemoAIAvailable } from '../../domain/demo-ai-context';
 import { Button } from '../../ui/button';
+import {
+  berlinTimeZone,
+  getBerlinToday,
+  getCalendarDate,
+} from './berlin-calendar';
+import { shipmentIdInputSchema } from './shipment-input';
+import { ShipmentPicker } from './shipment-picker';
+import { useShipmentSelection } from './use-shipment-selection';
+
+const actionTitle = 'Choose a delivery slot';
 
 // Date-only values and explicit delivery timezone avoid browser-dependent slot times.
 const windowSchema = schema.enum(['morning', 'afternoon', 'evening']);
@@ -19,18 +30,10 @@ const deliveryWindows: Record<
   afternoon: { label: 'Afternoon', start: '13:00', end: '17:00' },
   evening: { label: 'Evening', start: '17:00', end: '20:00' },
 };
-const deliveryTimezone = 'Europe/Berlin';
-
-/** Keep calendar arithmetic independent of browser timezone and daylight saving. */
-function calendarDate(date: string, offset = 0) {
-  const result = new Date(`${date}T00:00:00Z`);
-  result.setUTCDate(result.getUTCDate() + offset);
-  return result;
-}
 
 /** Fictional capacity is stable when the same date is reopened from history. */
 function availableWindows(date: string, today: string) {
-  const day = calendarDate(date);
+  const day = getCalendarDate(date);
   if (date <= today || day.getUTCDay() === 0 || day.getUTCDay() === 6)
     return [];
   return windowSchema.options.filter(
@@ -46,29 +49,25 @@ const outputSchema = schema.discriminatedUnion('status', [
     window: windowSchema,
     start: schema.string(),
     end: schema.string(),
-    timezone: schema.literal(deliveryTimezone),
+    timezone: schema.literal(berlinTimeZone),
   }),
   schema.object({
     status: schema.literal('cancelled'),
-    shipmentId: schema.string(),
+    shipmentId: schema.string().nullable(),
   }),
 ]);
 
 /** Let the user choose a sample delivery window without rescheduling a shipment. */
 export const selectDeliverySlot = defineIDIComponent({
+  title: actionTitle,
   description:
-    'Open a calendar and delivery windows for a shipment. Use selectShipment first if the shipment ID is unknown. The user can change the date, choose an available window, and confirm or cancel. Availability is weekdays from tomorrow, in Europe/Berlin time, with one fully booked window per day. Confirmation records the selected delivery window.',
+    'Open a calendar of sample delivery windows. The user can choose a shipment if needed, change the date, and confirm an available window or cancel. Availability is weekdays from tomorrow, in Europe/Berlin, with one fully booked window per day. Confirmation records the choice without booking or rescheduling a delivery.',
   inputSchema: schema.object({
-    shipmentId: schema
-      .string()
-      .min(1)
-      .describe(
-        'Existing shipment ID supplied by the user or selectShipment; never invent an ID.'
-      ),
+    shipmentId: shipmentIdInputSchema,
     date: schema.iso
       .date()
       .describe(
-        'Requested delivery date in YYYY-MM-DD. Resolve relative dates from the supplied browser time. If unspecified, use the next weekday after today. Past dates, today, and weekends have no availability.'
+        'Requested delivery date in YYYY-MM-DD. If unspecified, use the first weekday after today in Europe/Berlin. Past dates, today, and weekends have no availability.'
       ),
     selectedWindow: windowSchema
       .nullable()
@@ -79,32 +78,55 @@ export const selectDeliverySlot = defineIDIComponent({
   outputSchema,
   component: function SelectDeliverySlot({
     componentInput,
-    setComponentInputState,
+    setComponentInput,
     closeComponent,
   }) {
     const id = useId();
+    const aiAvailable = useDemoAIAvailable();
     const [busy, setBusy] = useState<'confirmed' | 'cancelled' | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const today = new Intl.DateTimeFormat('en-CA', {
-      timeZone: deliveryTimezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date());
+    const { shipment, chooseShipment, headingRef } = useShipmentSelection(
+      componentInput.shipmentId,
+      (shipmentId) =>
+        setComponentInput((previous) => ({ ...previous, shipmentId }))
+    );
+
+    function cancelDeliverySlot(shipmentId: string | null) {
+      void finish({ status: 'cancelled', shipmentId });
+    }
+
+    if (!shipment) {
+      return (
+        <ShipmentPicker
+          title={actionTitle}
+          label="Choose a shipment to schedule"
+          onSelect={chooseShipment}
+          cancel={{
+            label: 'Cancel',
+            variant: 'outline',
+            pending: busy === 'cancelled',
+            error,
+            onCancel: cancelDeliverySlot,
+          }}
+        />
+      );
+    }
+
+    const today = getBerlinToday();
     const available = availableWindows(componentInput.date, today);
     const selectedWindow = available.find(
       (window) => window === componentInput.selectedWindow
     );
-    const selectedDate = calendarDate(componentInput.date);
+    const selectedDate = getCalendarDate(componentInput.date);
     const mondayOffset = (selectedDate.getUTCDay() + 6) % 7;
     const week = Array.from({ length: 7 }, (_, index) =>
-      calendarDate(componentInput.date, index - mondayOffset)
+      getCalendarDate(componentInput.date, index - mondayOffset)
     );
 
     // Changing the day clears the time choice rather than carrying it to a different date.
     function selectDate(date: string) {
       setError(null);
-      setComponentInputState((previous) => ({
+      setComponentInput((previous) => ({
         ...previous,
         date,
         selectedWindow: null,
@@ -112,14 +134,16 @@ export const selectDeliverySlot = defineIDIComponent({
     }
 
     async function finish(output: schema.infer<typeof outputSchema>) {
+      if (busy !== null) return;
       setBusy(output.status);
       setError(null);
       try {
-        await closeComponent({ setComponentOutput: output, agentFollowUp: false });
+        await closeComponent({
+          setComponentOutput: output,
+          agentFollowUp: output.status === 'confirmed' && aiAvailable,
+        });
       } catch {
-        setError(
-          'Could not save your selection. Please try again.'
-        );
+        setError('Could not save your selection. Please try again.');
       } finally {
         setBusy(null);
       }
@@ -127,17 +151,19 @@ export const selectDeliverySlot = defineIDIComponent({
 
     return (
       <section
-        aria-label="Select a delivery slot"
+        aria-label={actionTitle}
         aria-busy={busy !== null}
         className="space-y-4 rounded-lg border border-border bg-card p-4 text-card-foreground"
       >
         <header className="space-y-1">
-          <h3 className="font-semibold">Choose a delivery slot</h3>
+          <h3 ref={headingRef} tabIndex={-1} className="font-semibold">
+            {actionTitle}
+          </h3>
           <p className="wrap-break-word text-sm text-muted-foreground">
-            Shipment {componentInput.shipmentId}
+            Shipment {shipment.id}
           </p>
           <p className="text-xs text-muted-foreground">
-            All times Europe/Berlin.
+            All times {berlinTimeZone}.
           </p>
         </header>
 
@@ -151,6 +177,7 @@ export const selectDeliverySlot = defineIDIComponent({
               id={`${id}-date`}
               type="date"
               value={componentInput.date}
+              aria-describedby={`${id}-date-help`}
               onChange={(event) => {
                 const parsed = schema.iso
                   .date()
@@ -159,7 +186,7 @@ export const selectDeliverySlot = defineIDIComponent({
               }}
               className="min-h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none sm:w-auto"
             />
-            <p className="text-xs text-muted-foreground">
+            <p id={`${id}-date-help`} className="text-xs text-muted-foreground">
               Choose any date to browse its week. Deliveries start tomorrow,
               weekdays only.
             </p>
@@ -225,7 +252,7 @@ export const selectDeliverySlot = defineIDIComponent({
                     disabled={!enabled}
                     onChange={() => {
                       setError(null);
-                      setComponentInputState((previous) => ({
+                      setComponentInput((previous) => ({
                         ...previous,
                         selectedWindow: window,
                       }));
@@ -269,18 +296,14 @@ export const selectDeliverySlot = defineIDIComponent({
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="outline"
-            disabled={busy !== null}
+            disabled={busy === 'confirmed'}
+            aria-disabled={busy === 'cancelled'}
             className="motion-reduce:transition-none"
-            onClick={() =>
-              void finish({
-                status: 'cancelled',
-                shipmentId: componentInput.shipmentId,
-              })
-            }
+            onClick={() => cancelDeliverySlot(shipment.id)}
           >
             {busy === 'cancelled' && (
               <Loader2
@@ -292,19 +315,20 @@ export const selectDeliverySlot = defineIDIComponent({
           </Button>
           <Button
             type="button"
-            disabled={busy !== null || selectedWindow === undefined}
+            disabled={busy === 'cancelled' || selectedWindow === undefined}
+            aria-disabled={busy === 'confirmed'}
             className="motion-reduce:transition-none"
             onClick={() => {
               if (selectedWindow) {
                 const slot = deliveryWindows[selectedWindow];
                 void finish({
                   status: 'confirmed',
-                  shipmentId: componentInput.shipmentId,
+                  shipmentId: shipment.id,
                   date: componentInput.date,
                   window: selectedWindow,
                   start: slot.start,
                   end: slot.end,
-                  timezone: deliveryTimezone,
+                  timezone: berlinTimeZone,
                 });
               }
             }}
@@ -324,7 +348,9 @@ export const selectDeliverySlot = defineIDIComponent({
   componentSummary: function DeliverySlotSummary({ componentInput }) {
     return (
       <span>
-        Delivery slot · {componentInput.shipmentId} · {componentInput.date}
+        Delivery slot
+        {componentInput.shipmentId ? ` · ${componentInput.shipmentId}` : ''}
+        {` · ${componentInput.date}`}
         {componentInput.selectedWindow
           ? ` · ${deliveryWindows[componentInput.selectedWindow].label}`
           : ''}
