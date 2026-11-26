@@ -8,8 +8,7 @@
     "access": "public"
   },
   "files": [
-    "dist",
-    "AGENTS.md"
+    "dist"
   ],
   "exports": {
     ".": {
