@@ -36,13 +36,15 @@ With `reopenThisComponentOnClose: true`, any successful `closeComponent` call fr
 
 ## Control how components open
 
-Set these flags in a component’s `defineIDIComponent` definition:
+Set these flags in a component’s [`defineIDIComponent`](../README.md#2-create-an-idi-component) definition:
 
 - `disableStandaloneOpen: true` blocks standalone opening via `useIDI().openComponent()`, including from chat history or pins. Keep the component’s summary visible in history, but omit reopen and pin actions.
 - `disableAgentOpen: true` keeps the component out of the model’s tool list.
 
-The flags work independently. Neither prevents a component from being opened via `useOpenComponent()` inside another component.
+The flags work independently. Neither prevents a component from being opened via `useOpenComponent()` from inside another component.
 
-- **Keep a summary without letting users reopen it.** Set `disableStandaloneOpen: true` on a one-time review. The model can still open the review, but once it closes, chat history shows only the summary, without **Reopen** or **Pin** actions.
-- **Open from your app, not from the model.** Set `disableAgentOpen: true` on `expenseReceipts`. The agent can’t open it, but the [**View receipts** button](#open-a-component-from-another-component) still can. Users can also reopen it from history or pins.
-- **Open only from another component.** Set both flags on a deletion confirmation. Use `useOpenComponent()` in the item component to open the confirmation from its **Delete** button. The model can’t open the confirmation directly, and users can’t reopen it from history or pins.
+### When to use each flag
+
+- **Keep a summary in the history without letting users reopen it.** Set `disableStandaloneOpen: true` when a component should be used only once (e.g. reviewing a submitted form). The model can still open the component, but once it closes, chat history shows only the summary, without **Reopen** or **Pin** actions.
+- **Let users open a component, but not the model.** Set `disableAgentOpen: true` when a component should open only in response to a user action, not at the agent’s initiative (e.g. modifying a selected entry from a list). Users can still reopen it from history or pins.
+- **Open only from another component.** Set both flags to let open the component from another one (e.g. opening a confirmation dialog). The model can’t open it directly. After it closes, its summary still appears in chat history, but users can’t reopen it from history or pins.
