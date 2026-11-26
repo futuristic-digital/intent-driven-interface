@@ -25,7 +25,7 @@ IDI provides two skills for your coding agent:
 From the directory containing your app’s `package.json`, install the skills package:
 
 ```sh
-npm install --save-dev @intent-driven-interface/skill
+npm install --save-dev @intent-driven-interface/skills
 ```
 
 Then register both skills with the command for your coding agent:
@@ -33,25 +33,25 @@ Then register both skills with the command for your coding agent:
 **Codex, Cursor, Gemini CLI, OpenCode, and other agents that read `.agents/skills/`:**
 
 ```sh
-npx @intent-driven-interface/skill add-skills
+npx @intent-driven-interface/skills add-skills
 ```
 
 **Claude Code:**
 
 ```sh
-npx @intent-driven-interface/skill add-skills --agent claude
+npx @intent-driven-interface/skills add-skills --agent claude
 ```
 
 **GitHub Copilot:**
 
 ```sh
-npx @intent-driven-interface/skill add-skills --agent github
+npx @intent-driven-interface/skills add-skills --agent github
 ```
 
 **Cline:**
 
 ```sh
-npx @intent-driven-interface/skill add-skills --agent cline
+npx @intent-driven-interface/skills add-skills --agent cline
 ```
 
 ---

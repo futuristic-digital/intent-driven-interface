@@ -1,0 +1,28 @@
+{
+  "name": "@intent-driven-interface/skills",
+  "version": "0.2.0",
+  "description": "Agent skills for Intent Driven Interface integration and component authoring.",
+  "license": "MIT",
+  "homepage": "https://github.com/futuristic-digital/intent-driven-interface#add-skills-to-your-coding-agent",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "skills": "./cli.mjs"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "cli.mjs"
+  ],
+  "scripts": {
+    "build": "npm run clean && mkdir -p dist && cp -R ../../README.md ../../LICENSE ../../docs dist/",
+    "clean": "rm -rf dist",
+    "prepack": "turbo run build --filter=@intent-driven-interface/skills",
+    "lint": "eslint ."
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
