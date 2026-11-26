@@ -6,10 +6,12 @@ This guide covers the HTTP contract between `useIDI` and `IDIAgent`. To connect 
 
 `useIDI` sends both strict JSON shapes to the same `backend.url` with the same `backend.requestHeaders`. Neither shape includes an `op` or `operation` field:
 
-- **Generation:** POST `{ messages, componentMap, context? }` with a non-empty wire message array, serializable tool definitions, and [optional JSON context](request-context.md) validated against the agent's `contextSchema`. The response is an AI SDK UI message stream.
+- **Generation:** POST `{ messages, componentMap }` with a non-empty wire message array and serializable tool definitions. The response is an AI SDK UI message stream.
 - **Update only:** POST `{ message }` with one complete assistant component message. No model runs. The endpoint returns `204` after the callback completes or as a no-op if the callback is omitted.
 
-The endpoint returns `400` for an invalid body or generation context and `500` if the callback throws or rejects before a stream starts or on an update-only request. A stream already underway cannot change its HTTP status.
+Every wire message must include its ISO creation time in `metadata.timestamp`. IDI includes user and assistant message timestamps in model input without changing the text shown in chat or passed to `onMessageUpdate`.
+
+The endpoint returns `400` for an invalid body and `500` if the callback throws or rejects before a stream starts or on an update-only request. A stream already underway cannot change its HTTP status.
 
 ## Shared types and validation
 

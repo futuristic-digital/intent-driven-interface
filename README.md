@@ -92,7 +92,7 @@ To use another provider or a locally hosted model, pass its AI SDK model instanc
 
 #### Customize the assistant with `instructions`
 
-Add `instructions` to give the assistant a voice or app-specific guidance. IDI appends them to its built-in instructions.
+Add `instructions` to give the assistant a voice or app-specific guidance. IDI appends them to its built-in instructions. The model receives timestamps for user and assistant messages, so it can interpret relative dates in the conversation, such as “Show me next week’s events”.
 
 #### Save chat history with `onMessageUpdate`
 
@@ -245,7 +245,6 @@ Closing normally starts another model turn. The model sees the original input in
 
 - [Chat history and pins](docs/chat-history-and-pins.md) — Save and resume conversations and let users pin components.
 - [Follow-up components](docs/follow-up-components.md) — Chain components and control how they can open.
-- [Request context](docs/request-context.md) — Give the model extra information, such as the browser’s current time.
 - [HTTP API](docs/http-api.md) — Look up request formats, response codes, and validation schemas.
 
 ---
