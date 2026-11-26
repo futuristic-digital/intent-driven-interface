@@ -83,11 +83,7 @@ export function ChatWorkspace() {
     return (
       <main className="grid min-h-dvh place-items-center bg-background p-6 text-center">
         <div className="max-w-md space-y-3">
-          <h1 className="text-2xl font-bold">Flowdock: Intent-Driven Interface demo</h1>
-          <p>
-            Ask to compare carriers, view shipments, or draft a delay notice.
-            All shipments and actions are simulated.
-          </p>
+          <h1 className="text-2xl font-bold">Intent-Driven Interface demo</h1>
           <p role="status" className="text-muted-foreground">
             {chat.status === 'loading' ? 'Loading chat…' : ''}
           </p>

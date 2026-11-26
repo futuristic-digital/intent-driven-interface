@@ -148,7 +148,15 @@ export function ChatInput({
 
         {/* Footer Info */}
         <p className="mt-2 text-center font-mono text-[10px] text-muted-foreground">
-          <span className="tracking-wider">intent-driven interface - by</span>{' '}
+          <span className="tracking-wider">
+            <a
+              href="https://www.intent-driven-interface.dev/"
+              className="underline focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              intent-driven interface
+            </a>{' '}
+            - by
+          </span>{' '}
           <a
             href="https://futuristic.digital"
             target="_blank"
