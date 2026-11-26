@@ -43,7 +43,7 @@ A pin lets users reopen a component without having to find the original message 
 
 ### Pin from the chat
 
-To pin a chat component, save `componentId` and the component’s current input (`componentInput.override ?? componentInput.initial`). Don’t offer pinning for components with `disableStandaloneOpen: true`.
+To pin a chat component, save `part.componentId` and the current input (`part.componentInput`). Don’t offer pinning for components with `disableStandaloneOpen: true`.
 
 ```ts
 // save-pin.ts
@@ -66,14 +66,13 @@ Call `renderPinButton(part)` next to the component or its summary.
 ```tsx
 function renderPinButton(part: {
   componentId: string;
-  componentInput: { initial: object; override?: object };
+  componentInput: object;
   disableStandaloneOpen?: boolean;
 }) {
   if (part.disableStandaloneOpen) return null;
 
-  const input = part.componentInput.override ?? part.componentInput.initial;
   return (
-    <form action={() => savePin(part.componentId, input)}>
+    <form action={() => savePin(part.componentId, part.componentInput)}>
       <button type="submit">Pin</button>
     </form>
   );

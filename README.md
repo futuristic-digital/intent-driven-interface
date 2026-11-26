@@ -190,7 +190,7 @@ export function Chat() {
               // Component is an entry in the chat history, show a compact summary
               const output = part.outputSchema?.safeParse(part.componentOutput);
               const summaryProps = {
-                componentInput: part.componentProps.componentInput,
+                componentInput: part.componentInput,
                 componentOutput: output?.success ? output.data : undefined,
               };
               return <part.componentSummary key={index} {...summaryProps} />;
@@ -234,7 +234,7 @@ const { messages, sendMessage, status, openComponent } = useIDI({
   <button
     type="button"
     disabled={status === 'submitted' || status === 'streaming'}
-    onClick={() => openComponent(part.componentId, part.componentInput.override ?? part.componentInput.initial)}
+    onClick={() => openComponent(part.componentId, part.componentInput)}
   >
     Reopen {part.title ?? part.componentId}
   </button>
@@ -250,7 +250,7 @@ Reopening adds a new instance at the end of the chat without asking the model. T
 ## Component lifecycle
 
 1. **Open.** Only the last part of the latest message can be a live, interactive component. The model can open a component by ending its reply with a call to it, or your app can open one directly with `openComponent`. Render the live view when `part.isLive` is `true` and its summary otherwise.
-2. **Edit.** `componentInput` has two keys: `initial` is the original input, and `override` holds any edits made while the component is open. `setComponentInput` updates only `override`, so the model can distinguish the input it originally sent in response to the user’s request from what the user changed during the live interaction. If the component defines an `outputSchema`, use `setComponentOutput` to save a draft result.
+2. **Edit.** `part.componentInput` is the current input. It starts as the original input, and `setComponentInput` replaces it. `part.componentInputInitial` always keeps the original value. If the component defines an `outputSchema`, use `setComponentOutput` to save a draft result.
 3. **Close.** Call `closeComponent()` to use the draft as the final result, or pass a new result with `closeComponent({ setComponentOutput: output })`.
 4. **Show the summary.** `componentSummary` receives the current input and optional final output. If you define an `outputSummary`, render it alongside the component summary. `part.componentOutput` holds the draft while the component is open and the final output once it closes.
 
