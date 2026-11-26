@@ -1,20 +1,31 @@
 # HTTP API
 
-This guide covers the HTTP contract between `useIDI` and `IDIAgent`. To connect them in your app, start with [Set up IDI](../README.md#set-up-idi).
+[`useIDI`](../README.md#4-connect-and-render-the-conversation) sends a `POST` to `backend.url` with `backend.requestHeaders` if configured. Your endpoint passes the parsed body to [`IDIAgent`](../README.md#1-create-a-server-endpoint) via `handleChatRequest`.
 
-## Requests and responses
+## Generate a reply
 
-`useIDI` sends both strict JSON shapes to the same `backend.url` with the same `backend.requestHeaders`. Neither shape includes an `op` or `operation` field:
+Send `{ messages, componentMap }` to start a model turn. The assistant can reply with text, open a component, or do both.
 
-- **Generation:** POST `{ messages, componentMap }` with a non-empty wire message array and serializable tool definitions. The response is an AI SDK UI message stream.
-- **Update only:** POST `{ message }` with one complete assistant component message. No model runs. The endpoint returns `204` after the callback completes or as a no-op if the callback is omitted.
+- **`messages`** is a non-empty list of conversation messages. It carries the new user message or a finalized component result, along with the conversation context.
+- **`componentMap`** tells the agent which components it can open. It’s keyed by component ID and contains definitions such as descriptions and JSON schemas for inputs and optional outputs, not React components.
 
-Every wire message must include its ISO creation time in `metadata.timestamp`. IDI includes user and assistant message timestamps in model input without changing the text shown in chat or passed to `onMessageUpdate`.
+When the user closes a component with a result, IDI saves the result and, by default, sends a generation request so the assistant can respond without a new user message. To save the result without asking the assistant to reply, call `closeComponent({ agentFollowUp: false })`.
 
-The endpoint returns `400` for an invalid body and `500` if the callback throws or rejects before a stream starts or on an update-only request. A stream already underway cannot change its HTTP status.
+## Save a component change
 
-## Shared types and validation
+Send `{ message }` to report a change without running the model. For example, when the user changes the week in an open selector, IDI sends the complete assistant message containing the selector and its updated input, not just the new week.
 
-The browser-safe `@intent-driven-interface/backend/api-contracts` entry point exports `IDIChatMessage`, `ComponentMapForBackend`, and `IDIRequestBody`. It also exports `ComponentInput`, the `{ initial, override? }` type used by render parts, which is available from `@intent-driven-interface/backend` as well. Use `idiRequestBodySchema.safeParseAsync(body)` to validate either POST shape and `idiMessagesSchema.safeParseAsync(messages)` to validate wire messages at app boundaries, such as when reading stored history. The history schema accepts `[]`; generation requires at least one message. Message validation checks SDK parts and metadata without revalidating old component inputs or outputs against the current component map.
+The endpoint passes the message to [`onMessageUpdate`](../README.md#save-chat-history-with-onmessageupdate) and returns `204 No Content` when the callback completes. If no callback is configured, it returns `204` without saving anything.
 
-The backend package also exports the tool builder, shared default instructions, and context trimming. The `@intent-driven-interface/backend/trim-messages-for-agent` entry point exposes the shared 40-message model context window.
+## Message timestamps
+
+Read the ISO 8601 creation time as `message.timestamp` in `onMessageUpdate` and on the messages returned by `useIDI`. The model receives it too, so it can interpret phrases like “next week.”
+
+The browser timestamps user messages when they’re sent. The server timestamps assistant replies when they start. If your app opens a component directly without asking the model, the browser timestamps that message too.
+
+## HTTP Error codes
+
+- **`400 Bad Request`** — IDI couldn’t read the body as `{ messages, componentMap }` to [generate a reply](#generate-a-reply) or `{ message }` to [save a component change](#save-a-component-change). For example, a generation request with `messages: []` is invalid. The response is `{ "error": "Invalid payload" }`.
+- **`500 Internal Server Error`** — Your app’s `onMessageUpdate` callback failed while saving a new user message before the reply starts or while saving a component change. For example, this happens if the callback returns a database write that fails. The response is `{ "error": "Message update failed" }`.
+
+Once a reply starts streaming, a later error can’t change its HTTP status.

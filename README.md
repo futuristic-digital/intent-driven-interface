@@ -96,7 +96,7 @@ Add `instructions` to give the assistant a voice or app-specific guidance. IDI a
 
 #### Save chat history with `onMessageUpdate`
 
-IDI calls `onMessageUpdate` when it receives a new user message, when the assistant finishes responding, and when the user edits or closes a component. Each call gives the complete message to the callback, not individual streamed tokens.
+IDI calls `onMessageUpdate` when it receives a new user message, when the assistant finishes responding, and when the user edits or closes a component. Each call gives the complete message, including its creation time as `message.timestamp`.
 
 Use the message ID to insert or update the record in your app’s storage. If you omit the callback, chat still works, but messages cannot be restored across page reloads.
 
@@ -245,7 +245,7 @@ Closing normally starts another model turn. The model sees the original input in
 
 - [Chat history and pins](docs/chat-history-and-pins.md) — Save and resume conversations and let users pin components.
 - [Follow-up components](docs/follow-up-components.md) — Chain components and control how they can open.
-- [HTTP API](docs/http-api.md) — Look up request formats, response codes, and validation schemas.
+- [HTTP API](docs/http-api.md) — See what starts a reply, what saves a component change, and which errors the endpoint returns.
 
 ---
 
