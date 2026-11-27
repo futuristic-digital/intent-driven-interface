@@ -125,7 +125,7 @@ function Hero() {
         </h1>
         <p className="mt-6 max-w-md text-lg leading-relaxed text-muted max-md:order-3 md:mt-7 lg:text-xl">
           Intent-Driven Interface (IDI) is an open-source framework for apps
-          that respond to requests with React controls. Tell the app what you
+          that respond to requests with React components. Tell the app what you
           want to do, see what each action will do, then decide what happens.
         </p>
         <div className="mt-6 grid grid-cols-2 items-center gap-2 max-md:order-4 md:mt-8 md:flex md:flex-wrap md:gap-x-6 md:gap-y-4">
